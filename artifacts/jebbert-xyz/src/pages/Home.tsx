@@ -53,16 +53,19 @@ export default function Home() {
         <div className="home-stack">
 
           {/* ── Unified presence block ── */}
-          <div className="presence-block">
-            <DiscordProfile
-              data={data}
-              loading={loading}
-              avatarUrl={avatarUrl}
-              avatarFallback={avatarFallback}
-            />
-            <div className="home-mid-row">
-              <SpotifyCard data={data} loading={loading} />
-              <GameCard data={data} loading={loading} />
+          <div className="card presence-block">
+            <div className="card-title">Discord Presence</div>
+            <div className="presence-inner">
+              <DiscordProfile
+                data={data}
+                loading={loading}
+                avatarUrl={avatarUrl}
+                avatarFallback={avatarFallback}
+              />
+              <div className="home-mid-row">
+                <SpotifyCard data={data} loading={loading} />
+                <GameCard data={data} loading={loading} />
+              </div>
             </div>
           </div>
 

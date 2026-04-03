@@ -174,14 +174,19 @@ body::after {
 }
 
 /* ── Presence block: unified Discord + Spotify + Game ── */
-.presence-block {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: rgba(18, 18, 26, 0.25);
+/* Uses .card for the outer border/bg/radius; we override padding to 0
+   so the banner and activity row go edge-to-edge, but add it back on the title */
+.card.presence-block {
+  padding: 0;
   overflow: hidden;
 }
 
-/* Discord profile inside block — no independent border/bg */
+.card.presence-block > .card-title {
+  padding: 16px 20px 12px;
+  margin: 0;
+}
+
+/* Discord profile inside block — strip its own card chrome */
 .presence-block .discord-profile {
   border: none;
   border-radius: 0;
@@ -190,18 +195,18 @@ body::after {
   overflow: visible;
 }
 
-/* Banner clips to the block's top rounded corners */
+/* Banner fills full width — card's overflow:hidden clips the corners */
 .presence-block .dp-banner {
-  border-radius: 12px 12px 0 0;
+  border-radius: 0;
 }
 
-/* Mid row inside block: flush, no gap, divider on top */
+/* Activity row: flush, divider on top */
 .presence-block .home-mid-row {
   gap: 0;
   border-top: 1px solid var(--border);
 }
 
-/* Cards inside the mid-row: strip individual borders/bg */
+/* Strip individual card chrome from Spotify/Game cards */
 .presence-block .home-mid-row .card {
   border: none;
   border-radius: 0;
@@ -211,10 +216,6 @@ body::after {
 /* Vertical divider between Spotify and Game */
 .presence-block .home-mid-row > :first-child {
   border-right: 1px solid var(--border);
-}
-
-.presence-block .home-mid-row > :last-child {
-  /* right side — no extra styles needed */
 }
 
 /* Legacy classes (kept for stability, no longer used in home layout) */
