@@ -100,7 +100,7 @@ export default function ConstellationCanvas() {
 
         for (const w of wavesRef.current) {
           const elapsed = ts - w.born;
-          const wR = elapsed * 0.38;
+          const wR = Math.max(0, elapsed * 0.38);
           const dx = st.x - w.x, dy = st.y - w.y;
           const d = Math.hypot(dx, dy);
           const ring = Math.abs(d - wR);
@@ -145,7 +145,7 @@ export default function ConstellationCanvas() {
           if (aNear || bNear) op = Math.min(0.95, op * 3);
 
           for (const w of wavesRef.current) {
-            const wR = (ts - w.born) * 0.38;
+            const wR = Math.max(0, (ts - w.born) * 0.38);
             const mx2 = (a.x + b.x) / 2, my2 = (a.y + b.y) / 2;
             const md = Math.hypot(mx2 - w.x, my2 - w.y);
             if (Math.abs(md - wR) < 55) op = Math.min(0.98, op + (1 - Math.abs(md - wR) / 55) * 0.75);
@@ -177,9 +177,9 @@ export default function ConstellationCanvas() {
 
       for (const w of wavesRef.current) {
         const elapsed = ts - w.born;
-        const wR = elapsed * 0.38;
+        const wR = Math.max(0, elapsed * 0.38);
         const wOp = Math.max(0, 1 - elapsed / 2800) * 0.55;
-        if (wOp <= 0.01) continue;
+        if (wOp <= 0.01 || wR <= 0) continue;
         ctx.beginPath();
         ctx.arc(w.x, w.y, wR, 0, Math.PI * 2);
         ctx.strokeStyle = `hsla(${hue},88%,92%,${wOp})`;
