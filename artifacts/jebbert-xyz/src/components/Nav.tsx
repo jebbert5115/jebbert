@@ -10,6 +10,7 @@ export function Nav() {
       <Link href="/" className="nav-logo neon-flicker">jebbert.xyz</Link>
       <ul className="nav-links">
         <li><Link href="/" className={location === '/' ? 'active' : ''}>Home</Link></li>
+        <li><Link href="/projects" className={location === '/projects' ? 'active' : ''}>Projects</Link></li>
         <li><Link href="/games" className={location === '/games' ? 'active' : ''}>Games</Link></li>
         <li><Link href="/extras" className={location === '/extras' ? 'active' : ''}>Extras</Link></li>
       </ul>

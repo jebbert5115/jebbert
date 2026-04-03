@@ -1,6 +1,7 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { Nav } from "@/components/Nav";
 import Home from "@/pages/Home";
+import Projects from "@/pages/Projects";
 import Games from "@/pages/Games";
 import Extras from "@/pages/Extras";
 import Secret from "@/pages/Secret";
@@ -37,6 +38,7 @@ function Router() {
       <main className="page-wrapper">
         <Switch>
           <Route path="/" component={Home} />
+          <Route path="/projects" component={Projects} />
           <Route path="/games" component={Games} />
           <Route path="/extras" component={Extras} />
           <Route path="/secret" component={Secret} />
