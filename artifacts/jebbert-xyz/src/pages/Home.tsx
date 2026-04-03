@@ -110,25 +110,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── Background instructions ── */}
-        <div className="card attractor-hint-card">
-          <div className="card-title">Background Controls</div>
-          <div className="attractor-hint-row">
-            <div className="attractor-hint-item">
-              <span className="attractor-hint-key">Click</span>
-              <span className="attractor-hint-desc">place a gravity attractor (up to 6)</span>
-            </div>
-            <div className="attractor-hint-item">
-              <span className="attractor-hint-key">Double-click</span>
-              <span className="attractor-hint-desc">remove nearest attractor</span>
-            </div>
-            <div className="attractor-hint-item">
-              <span className="attractor-hint-key">Move mouse</span>
-              <span className="attractor-hint-desc">pull particles toward cursor</span>
-            </div>
-          </div>
-        </div>
-
       </div>
 
       <Link href="/secret" className="secret-hidden-link">.</Link>

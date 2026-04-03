@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 /* ─── Palette ────────────────────────────────────────────────── */
 const PARTICLE_PALETTE: [number, number, number][] = [
@@ -66,12 +66,6 @@ function pullParticle(
 /* ─── Component ─────────────────────────────────────────────── */
 export default function FlowFieldCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [hint, setHint] = useState(true);
-
-  useEffect(() => {
-    const t = setTimeout(() => setHint(false), 5500);
-    return () => clearTimeout(t);
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -275,24 +269,40 @@ export default function FlowFieldCanvas() {
       />
       <div
         style={{
-          position:    'fixed',
-          bottom:      '20px',
-          left:        '50%',
-          transform:   'translateX(-50%)',
-          zIndex:      2,
-          fontSize:    '8px',
-          fontFamily:  'var(--font-accent)',
-          color:       'rgba(255,255,255,0.28)',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          textAlign:   'center',
+          position:      'fixed',
+          bottom:        0,
+          left:          0,
+          right:         0,
+          zIndex:        2,
+          padding:       '7px 16px',
+          background:    'rgba(30,30,36,0.38)',
+          backdropFilter: 'blur(6px)',
+          display:       'flex',
+          justifyContent: 'center',
+          gap:           '28px',
           pointerEvents: 'none',
-          whiteSpace:  'nowrap',
-          opacity:     hint ? 1 : 0,
-          transition:  'opacity 2s ease',
         }}
       >
-        click to place attractor &nbsp;·&nbsp; double-click to remove
+        {[
+          ['click',        'place attractor'],
+          ['double-click', 'remove nearest'],
+          ['move mouse',   'attract particles'],
+        ].map(([key, desc]) => (
+          <span key={key} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+            <span style={{
+              fontFamily:    'var(--font-accent)',
+              fontSize:      '8px',
+              fontWeight:    700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em',
+              color:         'rgba(139,92,246,0.55)',
+            }}>{key}</span>
+            <span style={{
+              fontSize: '9px',
+              color:    'rgba(255,255,255,0.2)',
+            }}>{desc}</span>
+          </span>
+        ))}
       </div>
     </>
   );
