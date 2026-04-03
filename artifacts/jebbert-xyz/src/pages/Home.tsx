@@ -3,34 +3,6 @@ import { useLanyard } from '../hooks/useLanyard';
 import { SpotifyCard } from '../components/SpotifyCard';
 import { Link } from 'wouter';
 
-const TIER_LIST = [
-  {
-    tier: 'S',
-    className: 'tier-s',
-    items: ['Spinning beach ball', 'Retro pixel art bars', 'The classic hourglass'],
-  },
-  {
-    tier: 'A',
-    className: 'tier-a',
-    items: ['OS X rainbow pinwheel', 'Blinking cursor'],
-  },
-  {
-    tier: 'B',
-    className: 'tier-b',
-    items: ['Indeterminate spinner', 'Dotdotdot animation', 'Progress bar that lies'],
-  },
-  {
-    tier: 'C',
-    className: 'tier-c',
-    items: ['Animated skeleton screen', '"Hang on..." text'],
-  },
-  {
-    tier: 'F',
-    className: 'tier-f',
-    items: ['White screen of nothing', 'Infinite spinner with no ETA'],
-  },
-];
-
 export default function Home() {
   const { data, loading, avatarUrl, avatarFallback, customStatus } = useLanyard();
   const [imgSrc, setImgSrc] = useState(avatarUrl);
@@ -44,8 +16,8 @@ export default function Home() {
     <>
       <div className="home-layout">
         {/* ── Left Sidebar ── */}
-        <aside>
-          <div className="card profile-card">
+        <aside className="home-sidebar">
+          <div className="card profile-card profile-card-full">
             <div className={`avatar-wrapper ${statusClass}`}>
               <img
                 className="avatar-img"
@@ -110,7 +82,7 @@ export default function Home() {
           <SpotifyCard data={data} loading={loading} />
 
           {/* About Me */}
-          <div className="card">
+          <div className="card about-card">
             <div className="card-title">About Me</div>
             <p style={{ fontSize: '13px', lineHeight: '1.8', color: 'var(--text-muted)' }}>
               hey, i'm <span style={{ color: 'var(--accent-2)' }}>jebbert</span>. i make things on the internet and break them shortly after.
@@ -122,14 +94,14 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Currently */}
+          {/* Board */}
           <div className="card">
-            <div className="card-title">Currently</div>
+            <div className="card-title">Board</div>
             <div className="currently-list">
               {[
-                { emoji: '🎮', label: 'Playing', value: 'Minecraft' },
-                { emoji: '📺', label: 'Watching', value: 'Severance' },
-                { emoji: '📖', label: 'Reading', value: 'A blog about CSS from 2009' },
+                { emoji: '🎮', label: 'Favorite Game', value: 'Minecraft' },
+                { emoji: '📺', label: 'Currently Watching', value: 'Severance' },
+                { emoji: '📖', label: 'Currently Reading', value: 'A blog about CSS from 2009' },
                 { emoji: '🎵', label: 'Fav Song', value: 'Always – blink-182' },
               ].map(({ emoji, label, value }) => (
                 <div key={label} className="currently-item">
@@ -140,27 +112,10 @@ export default function Home() {
               ))}
             </div>
           </div>
-
-          {/* Tier List */}
-          <div className="card">
-            <div className="card-title">Tier List: Types of Loading Screens</div>
-            <div className="tier-list">
-              {TIER_LIST.map(({ tier, className, items }) => (
-                <div key={tier} className={`tier-row ${className}`}>
-                  <div className="tier-label">{tier}</div>
-                  <div className="tier-items">
-                    {items.map(item => (
-                      <span key={item}>{item}</span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Hidden 1px secret link */}
+      {/* Hidden secret link */}
       <Link href="/secret" className="secret-hidden-link">.</Link>
     </>
   );

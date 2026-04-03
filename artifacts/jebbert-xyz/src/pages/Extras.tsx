@@ -17,6 +17,38 @@ function spawnConfetti(x: number, y: number) {
   }
 }
 
+/* ── Fullscreen hook ── */
+function useFullscreen(ref: React.RefObject<HTMLDivElement | null>) {
+  const [isFs, setIsFs] = useState(false);
+  useEffect(() => {
+    const handler = () => setIsFs(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+  const toggle = () => {
+    if (!document.fullscreenElement) ref.current?.requestFullscreen();
+    else document.exitFullscreen();
+  };
+  return { isFs, toggle };
+}
+
+/* ── Extra card wrapper with fullscreen button ── */
+function ExtraCard({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { isFs, toggle } = useFullscreen(cardRef);
+  return (
+    <div ref={cardRef} className={`card ${className}`}>
+      <div className="card-header-row">
+        <div className="card-title">{title}</div>
+        <button className="fullscreen-btn" onClick={toggle} title={isFs ? 'Exit fullscreen' : 'Fullscreen'}>
+          {isFs ? '✕' : '⛶'}
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════
    1. USELESS BUTTON
 ════════════════════════════════════════════ */
@@ -38,8 +70,7 @@ function UselessButton() {
   const handleClick = () => setIdx(i => (i + 1) % USELESS_LABELS.length);
 
   return (
-    <div className="card">
-      <div className="card-title">The Useless Button</div>
+    <ExtraCard title="The Useless Button">
       <div style={{ textAlign: 'center', padding: '16px 0' }}>
         <button
           className="btn btn-primary"
@@ -49,7 +80,7 @@ function UselessButton() {
           {USELESS_LABELS[idx]}
         </button>
       </div>
-    </div>
+    </ExtraCard>
   );
 }
 
@@ -101,15 +132,14 @@ function ComplimentGenerator() {
   };
 
   return (
-    <div className="card">
-      <div className="card-title">Compliment Generator</div>
+    <ExtraCard title="Compliment Generator">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {text && <div className="result-text" style={{ color: 'var(--accent-2)' }}>{text}</div>}
         <button ref={btnRef} className="btn btn-primary" onClick={generate}>
           ✨ Generate Compliment
         </button>
       </div>
-    </div>
+    </ExtraCard>
   );
 }
 
@@ -159,15 +189,14 @@ function ExcuseGenerator() {
   };
 
   return (
-    <div className="card">
-      <div className="card-title">Excuse Generator</div>
+    <ExtraCard title="Excuse Generator">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {text && <div className="result-text" style={{ color: 'var(--accent-3)' }}>{text}</div>}
         <button className="btn" onClick={generate}>
           🎲 Generate Excuse
         </button>
       </div>
-    </div>
+    </ExtraCard>
   );
 }
 
@@ -214,8 +243,7 @@ function HackerTerminal() {
   }, [output]);
 
   return (
-    <div className="card">
-      <div className="card-title">Fake Hacker Terminal</div>
+    <ExtraCard title="Fake Hacker Terminal">
       <div className="terminal" ref={outputRef}>
         <div className="terminal-output">{output}</div>
         <div className="terminal-input-row">
@@ -230,7 +258,7 @@ function HackerTerminal() {
           />
         </div>
       </div>
-    </div>
+    </ExtraCard>
   );
 }
 
@@ -284,30 +312,29 @@ function VibeChecker() {
 
   const reset = () => { setStep(0); setResult(''); };
 
-  if (result) {
-    return (
-      <div className="card">
-        <div className="card-title">Vibe Checker</div>
-        <div className="vibe-result">
-          Your vibe is:<br />
-          <span style={{ color: 'var(--accent-2)', fontSize: '13px' }}>{result}</span>
-        </div>
-        <button className="btn" onClick={reset} style={{ marginTop: '8px' }}>Check Again</button>
-      </div>
-    );
-  }
+  const title = result ? 'Vibe Checker' : `Vibe Checker (${step + 1}/${VIBE_QUESTIONS.length})`;
 
-  const q = VIBE_QUESTIONS[step];
   return (
-    <div className="card">
-      <div className="card-title">Vibe Checker ({step + 1}/{VIBE_QUESTIONS.length})</div>
-      <div className="vibe-question">{q.q}</div>
-      <div className="vibe-options">
-        {q.opts.map(opt => (
-          <button key={opt} className="vibe-option" onClick={choose}>{opt}</button>
-        ))}
-      </div>
-    </div>
+    <ExtraCard title={title}>
+      {result ? (
+        <>
+          <div className="vibe-result">
+            Your vibe is:<br />
+            <span style={{ color: 'var(--accent-2)', fontSize: '13px' }}>{result}</span>
+          </div>
+          <button className="btn" onClick={reset} style={{ marginTop: '8px' }}>Check Again</button>
+        </>
+      ) : (
+        <>
+          <div className="vibe-question">{VIBE_QUESTIONS[step].q}</div>
+          <div className="vibe-options">
+            {VIBE_QUESTIONS[step].opts.map(opt => (
+              <button key={opt} className="vibe-option" onClick={choose}>{opt}</button>
+            ))}
+          </div>
+        </>
+      )}
+    </ExtraCard>
   );
 }
 
@@ -340,8 +367,7 @@ function RunawayButton() {
   };
 
   return (
-    <div className="card">
-      <div className="card-title">The Button That Runs Away</div>
+    <ExtraCard title="The Button That Runs Away">
       <div
         ref={containerRef}
         style={{ position: 'relative', height: '160px', overflow: 'hidden' }}
@@ -373,7 +399,7 @@ function RunawayButton() {
           </button>
         )}
       </div>
-    </div>
+    </ExtraCard>
   );
 }
 
@@ -415,8 +441,7 @@ function playTone(freq: number, type: OscillatorType, duration: number) {
 
 function Soundboard() {
   return (
-    <div className="card">
-      <div className="card-title">Sound Board</div>
+    <ExtraCard title="Sound Board">
       <div className="soundboard-grid">
         {SOUNDS.map(s => (
           <button
@@ -428,7 +453,7 @@ function Soundboard() {
           </button>
         ))}
       </div>
-    </div>
+    </ExtraCard>
   );
 }
 

@@ -1,5 +1,37 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+/* ── Fullscreen hook ── */
+function useFullscreen(ref: React.RefObject<HTMLDivElement | null>) {
+  const [isFs, setIsFs] = useState(false);
+  useEffect(() => {
+    const handler = () => setIsFs(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+  const toggle = () => {
+    if (!document.fullscreenElement) ref.current?.requestFullscreen();
+    else document.exitFullscreen();
+  };
+  return { isFs, toggle };
+}
+
+/* ── Game card wrapper with fullscreen button ── */
+function GameCard({ title, children, className = '' }: { title: string; children: React.ReactNode; className?: string }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { isFs, toggle } = useFullscreen(cardRef);
+  return (
+    <div ref={cardRef} className={`card game-card ${className}`}>
+      <div className="game-header-row">
+        <div className="game-title">{title}</div>
+        <button className="fullscreen-btn" onClick={toggle} title={isFs ? 'Exit fullscreen' : 'Fullscreen'}>
+          {isFs ? '✕' : '⛶'}
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════
    SNAKE GAME
 ════════════════════════════════════════════ */
@@ -41,6 +73,22 @@ function SnakeGame() {
 
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    /* Grid lines */
+    ctx.strokeStyle = 'rgba(42, 42, 61, 0.8)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x <= COLS; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * CELL, 0);
+      ctx.lineTo(x * CELL, ROWS * CELL);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= ROWS; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * CELL);
+      ctx.lineTo(COLS * CELL, y * CELL);
+      ctx.stroke();
+    }
 
     ctx.fillStyle = '#7c3aed';
     for (const p of s.snake) {
@@ -138,8 +186,7 @@ function SnakeGame() {
   };
 
   return (
-    <div className="card game-card">
-      <div className="game-title">SNAKE</div>
+    <GameCard title="SNAKE">
       <canvas ref={canvasRef} width={COLS * CELL} height={ROWS * CELL} />
       <div className="game-controls">
         <button className="btn btn-primary" onClick={startGame}>
@@ -164,7 +211,7 @@ function SnakeGame() {
         <button className="btn dpad-btn" onClick={() => dpad('D')}>▼</button>
         <div />
       </div>
-    </div>
+    </GameCard>
   );
 }
 
@@ -208,8 +255,7 @@ function ClickerGame() {
   };
 
   return (
-    <div className="card game-card">
-      <div className="game-title">THE CLICKER</div>
+    <GameCard title="THE CLICKER">
       <div style={{ textAlign: 'center', padding: '20px 0' }}>
         <div style={{
           fontFamily: 'var(--font-display)',
@@ -243,7 +289,7 @@ function ClickerGame() {
         <button className="btn" style={{ fontSize: '9px' }} onClick={reset}>Reset</button>
         <span className="score-display">Lifetime: {count.toLocaleString()}</span>
       </div>
-    </div>
+    </GameCard>
   );
 }
 
@@ -327,8 +373,7 @@ function MemoryGame() {
   };
 
   return (
-    <div className="card game-card">
-      <div className="game-title">MEMORY FLIP</div>
+    <GameCard title="MEMORY FLIP">
       {won ? (
         <div style={{ textAlign: 'center', padding: '24px' }}>
           <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎉</div>
@@ -363,7 +408,7 @@ function MemoryGame() {
           </div>
         </>
       )}
-    </div>
+    </GameCard>
   );
 }
 
@@ -403,7 +448,7 @@ function RedButtonGame() {
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
   return (
-    <>
+    <GameCard title="DON'T CLICK THE RED BUTTON">
       {showError && (
         <div className="fake-error">
           <div className="sad-face">:(</div>
@@ -416,30 +461,27 @@ function RedButtonGame() {
           </p>
         </div>
       )}
-      <div className="card game-card">
-        <div className="game-title">DON'T CLICK THE RED BUTTON</div>
-        <div className="red-button-container">
-          {!started ? (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                Record: {record}s · Do. Not. Click. It.
-              </div>
-              <button className="btn" onClick={startTimer}>I accept this challenge</button>
+      <div className="red-button-container">
+        {!started ? (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Record: {record}s · Do. Not. Click. It.
             </div>
-          ) : (
-            <>
-              <div className="timer-display">{elapsed}s</div>
-              <button className="red-button-big" onClick={clickedRed}>
-                DO NOT<br />CLICK
-              </button>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                Record: {record}s
-              </div>
-            </>
-          )}
-        </div>
+            <button className="btn" onClick={startTimer}>I accept this challenge</button>
+          </div>
+        ) : (
+          <>
+            <div className="timer-display">{elapsed}s</div>
+            <button className="red-button-big" onClick={clickedRed}>
+              DO NOT<br />CLICK
+            </button>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              Record: {record}s
+            </div>
+          </>
+        )}
       </div>
-    </>
+    </GameCard>
   );
 }
 
