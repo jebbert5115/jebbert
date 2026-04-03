@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLanyard } from '../hooks/useLanyard';
 import { SpotifyCard } from '../components/SpotifyCard';
+import { GameCard } from '../components/GameCard';
 import { Link } from 'wouter';
 import FlowFieldCanvas from '../components/FlowFieldCanvas';
 
@@ -73,19 +74,21 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── Mid row: Now Playing + About Me ── */}
+        {/* ── Mid row: Spotify + Game ── */}
         <div className="home-mid-row">
           <SpotifyCard data={data} loading={loading} />
+          <GameCard data={data} loading={loading} />
+        </div>
 
-          <div className="card">
-            <div className="card-title">About Me</div>
-            <p style={{ fontSize: '13px', lineHeight: '1.8', color: 'var(--text-muted)' }}>
-              I actually have no idea what to put in these things.
-            </p>
-            <p style={{ fontSize: '13px', lineHeight: '1.8', color: 'var(--text-muted)', marginTop: '12px' }}>
-              yeah.
-            </p>
-          </div>
+        {/* ── About Me ── */}
+        <div className="card about-card-inline">
+          <div className="card-title">About Me</div>
+          <p style={{ fontSize: '13px', lineHeight: '1.8', color: 'var(--text-muted)' }}>
+            I actually have no idea what to put in these things.
+          </p>
+          <p style={{ fontSize: '13px', lineHeight: '1.8', color: 'var(--text-muted)', marginTop: '12px' }}>
+            yeah.
+          </p>
         </div>
 
         {/* ── Board ── */}

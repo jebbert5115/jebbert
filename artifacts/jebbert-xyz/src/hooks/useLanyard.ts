@@ -33,6 +33,17 @@ export interface LanyardData {
     type: number;
     state?: string;
     details?: string;
+    application_id?: string;
+    assets?: {
+      large_image?: string;
+      large_text?: string;
+      small_image?: string;
+      small_text?: string;
+    };
+    timestamps?: {
+      start?: number;
+      end?: number;
+    };
   }>;
 }
 
