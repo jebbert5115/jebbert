@@ -83,7 +83,7 @@ export function GameCard({ data, loading }: GameCardProps) {
     : activity.state ?? null;
 
   return (
-    <div className="card pulse">
+    <div className="card">
       <div className="card-title">Now Playing</div>
       <div className="spotify-card">
         {iconUrl && !iconFailed ? (

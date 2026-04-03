@@ -47,7 +47,7 @@ export function SpotifyCard({ data, loading }: SpotifyCardProps) {
   const { song, artist, album_art_url } = data.spotify;
 
   return (
-    <div className="card pulse">
+    <div className="card">
       <div className="card-title">Now Playing</div>
       <div className="spotify-card">
         {album_art_url ? (
