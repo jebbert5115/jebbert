@@ -56,7 +56,6 @@ export default function Home() {
           <DiscordProfile
             data={data}
             loading={loading}
-            customStatus={customStatus}
             avatarUrl={avatarUrl}
             avatarFallback={avatarFallback}
           />

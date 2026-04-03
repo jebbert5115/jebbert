@@ -13,42 +13,14 @@ const BADGES = [
   { key: 'orbs',    src: `${BASE}badges/orbs_apprentice.png`,   tip: 'Orbs Apprentice' },
 ];
 
-/* ── Platform icons ── */
-function DesktopIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-label="Desktop">
-      <rect x="2" y="3" width="20" height="14" rx="2"/>
-      <path d="M8 21h8M12 17v4"/>
-    </svg>
-  );
-}
-function MobileIcon() {
-  return (
-    <svg width="12" height="14" viewBox="0 0 24 24" fill="currentColor" aria-label="Mobile">
-      <rect x="5" y="2" width="14" height="20" rx="2"/>
-      <circle cx="12" cy="18" r="1" fill="#0a0a0f"/>
-    </svg>
-  );
-}
-function WebIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-label="Web">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="2" y1="12" x2="22" y2="12"/>
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-    </svg>
-  );
-}
-
 interface Props {
   data: LanyardData | null;
   loading: boolean;
-  customStatus: string | null;
   avatarUrl: string;
   avatarFallback: string;
 }
 
-export default function DiscordProfile({ data, loading, customStatus, avatarUrl, avatarFallback }: Props) {
+export default function DiscordProfile({ data, loading, avatarUrl, avatarFallback }: Props) {
   const [avatarErr, setAvatarErr] = useState(false);
   const [decorErr,  setDecorErr]  = useState(false);
   const [clanErr,   setClanErr]   = useState(false);
@@ -66,12 +38,6 @@ export default function DiscordProfile({ data, loading, customStatus, avatarUrl,
   const clanBadgeUrl = clan
     ? `https://cdn.discordapp.com/clan-badges/${clan.identity_guild_id}/${clan.badge}.png?size=20`
     : null;
-
-  /* Active platforms */
-  const platforms: { label: string; icon: React.ReactNode }[] = [];
-  if (data?.active_on_discord_desktop) platforms.push({ label: 'Desktop', icon: <DesktopIcon /> });
-  if (data?.active_on_discord_mobile)  platforms.push({ label: 'Mobile',  icon: <MobileIcon /> });
-  if (data?.active_on_discord_web)     platforms.push({ label: 'Web',     icon: <WebIcon /> });
 
   if (loading) {
     return <div className="discord-profile dp-skeleton" />;
@@ -134,28 +100,6 @@ export default function DiscordProfile({ data, loading, customStatus, avatarUrl,
 
         {/* Username */}
         <div className="dp-username">@{user?.username ?? 'jebbert5115'}</div>
-
-        {/* Divider */}
-        <div className="dp-divider" />
-
-        {/* Custom status */}
-        {customStatus && (
-          <div className="dp-custom-status">
-            <span className="dp-status-emoji">💬</span>
-            <span>{customStatus}</span>
-          </div>
-        )}
-
-        {/* Platform indicators */}
-        {platforms.length > 0 && (
-          <div className="dp-platforms">
-            {platforms.map(p => (
-              <span key={p.label} className="dp-platform-icon" title={`Active on ${p.label}`}>
-                {p.icon}
-              </span>
-            ))}
-          </div>
-        )}
 
       </div>
     </div>
