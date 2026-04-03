@@ -1323,47 +1323,6 @@ canvas.flow-field-canvas {
   margin-top: auto;
 }
 
-/* ── Attractor hint card ── */
-.attractor-hint-card {
-  border-color: rgba(124, 58, 237, 0.2);
-  background: rgba(10, 10, 15, 0.6);
-}
-
-.attractor-hint-row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.attractor-hint-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-  min-width: 180px;
-  padding: 10px 14px;
-  background: rgba(124, 58, 237, 0.06);
-  border: 1px solid rgba(124, 58, 237, 0.15);
-  border-radius: 6px;
-}
-
-.attractor-hint-key {
-  font-family: var(--font-accent);
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--accent-1);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.attractor-hint-desc {
-  font-size: 11px;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
 /* ── Hidden element ── */
 .secret-hidden-link {
   position: fixed;

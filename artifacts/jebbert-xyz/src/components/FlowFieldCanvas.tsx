@@ -1,66 +1,95 @@
 import { useEffect, useRef } from 'react';
 
-/* ─── Palette ────────────────────────────────────────────────── */
-const PARTICLE_PALETTE: [number, number, number][] = [
+/* ─── Perlin noise (2D gradient) ─────────────────────────────── */
+const perm = (() => {
+  const a = Array.from({ length: 256 }, (_, i) => i);
+  for (let i = 255; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0;
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return [...a, ...a];
+})();
+
+function fade(t: number) { return t * t * t * (t * (t * 6 - 15) + 10); }
+function lerp(a: number, b: number, t: number) { return a + (b - a) * t; }
+function grad(h: number, x: number, y: number) {
+  const u = (h & 3) < 2 ? x : y;
+  const v = (h & 3) < 2 ? y : x;
+  return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+}
+function noise(x: number, y: number): number {
+  const X = Math.floor(x) & 255, Y = Math.floor(y) & 255;
+  const xf = x - Math.floor(x), yf = y - Math.floor(y);
+  const u = fade(xf), v = fade(yf);
+  const a = perm[X] + Y, b = perm[X + 1] + Y;
+  return lerp(
+    lerp(grad(perm[a],     xf,     yf),     grad(perm[b],     xf - 1, yf), u),
+    lerp(grad(perm[a + 1], xf,     yf - 1), grad(perm[b + 1], xf - 1, yf - 1), u),
+    v,
+  );
+}
+
+/* Helper: compute the flow angle at a given world position + time */
+function flowAngle(px: number, py: number, t: number): number {
+  return (
+    noise(px * FIELD_SCALE + t,       py * FIELD_SCALE) * TWO_PI * 3 +
+    noise(px * FIELD_SCALE * 2 - t * 0.6, py * FIELD_SCALE * 2) * Math.PI
+  );
+}
+
+/* ─── Constants ─────────────────────────────────────────────── */
+const TWO_PI      = Math.PI * 2;
+const FIELD_SCALE = 0.0025;
+const TIME_SCALE  = 0.00022;
+const FORCE       = 0.13;
+const DAMPING     = 0.91;
+const MAX_SPEED   = 2.2;
+const VORTEX_R    = 130;
+const BURST_R     = 160;
+const BURST_MS    = 700;
+const TRAIL_ALPHA = 0.11;
+const BG          = 'rgba(10,10,15,';
+
+/* Target: 1 particle per ~1800px², clamped to [MIN, MAX] */
+const PARTICLE_MIN = 150;
+const PARTICLE_MAX = 900;
+
+/* Perf thresholds — reduce count when avg frame time stays above SLOW */
+const FT_SLOW     = 22;   // ms  → < ~45 fps
+const FT_FAST     = 16;   // ms  → ≥ 60 fps (allow restore)
+const SLOW_FRAMES = 60;   // consecutive slow frames before trimming
+const TRIM_PCT    = 0.15; // remove 15% of particles per trim step
+const GROW_PCT    = 0.10; // re-add  10% per grow step (up to target)
+
+const PALETTE: [number, number, number][] = [
   [124,  58, 237],
   [  6, 182, 212],
   [245, 158,  11],
-  [ 34, 197,  94],
-  [239,  68,  68],
+  [ 90,  40, 180],
+  [  0, 140, 180],
 ];
 
-const ATTRACTOR_PALETTE: [number, number, number][] = [
-  [139,  92, 246],
-  [  6, 182, 212],
-  [245, 158,  11],
-  [ 34, 197,  94],
-  [239,  68,  68],
-  [236,  72, 153],
-];
-
-/* ─── Types ──────────────────────────────────────────────────── */
-interface Particle {
+/* ─── Particle ───────────────────────────────────────────────── */
+interface P {
   x: number; y: number;
   vx: number; vy: number;
   col: [number, number, number];
+  life: number; maxLife: number;
 }
 
-interface Attractor {
-  x: number; y: number;
-  col: [number, number, number];
-  born: number;
-}
-
-/* ─── Constants ──────────────────────────────────────────────── */
-const PARTICLE_N    = 520;
-const CURSOR_G      = 700;
-const ATTRACTOR_G   = 3000;
-const MIN_DIST      = 48;
-const MAX_SPEED     = 6.5;
-const DAMPING       = 0.93;
-const TRAIL_ALPHA   = 0.065;
-const MAX_ATTRACT   = 6;
-const BG            = 'rgba(10,10,15,';
-
-/* ─── Helpers ────────────────────────────────────────────────── */
-function spawnParticle(w: number, h: number): Particle {
+function spawn(w: number, h: number): P {
   return {
-    x:   Math.random() * w,
-    y:   Math.random() * h,
-    vx:  (Math.random() - 0.5) * 0.8,
-    vy:  (Math.random() - 0.5) * 0.8,
-    col: PARTICLE_PALETTE[(Math.random() * PARTICLE_PALETTE.length) | 0],
+    x: Math.random() * w, y: Math.random() * h,
+    vx: 0, vy: 0,
+    col: PALETTE[(Math.random() * PALETTE.length) | 0],
+    life: 0,
+    maxLife: 250 + ((Math.random() * 350) | 0),
   };
 }
 
-function pullParticle(
-  p: Particle, ax: number, ay: number, G: number,
-): void {
-  const dx = ax - p.x, dy = ay - p.y;
-  const d  = Math.max(Math.sqrt(dx * dx + dy * dy), MIN_DIST);
-  const f  = G / (d * d);
-  p.vx += (dx / d) * f;
-  p.vy += (dy / d) * f;
+function targetCount(): number {
+  const area = window.innerWidth * window.innerHeight;
+  return Math.min(PARTICLE_MAX, Math.max(PARTICLE_MIN, (area / 1800) | 0));
 }
 
 /* ─── Component ─────────────────────────────────────────────── */
@@ -73,168 +102,167 @@ export default function FlowFieldCanvas() {
     const ctx = canvas.getContext('2d', { alpha: false })!;
 
     const mouse = { x: -9999, y: -9999, on: false };
-    const attractors: Attractor[] = [];
-    let particles: Particle[]     = [];
+    let burst: { x: number; y: number; at: number } | null = null;
     let raf: number;
-    let colorIdx = 0;
+    let t = 0;
+    let particles: P[] = [];
+    let last = performance.now();
 
-    /* ── Resize ─────────────────────────────────────────────── */
+    /* ── Performance tracking ─────────────────────────────── */
+    let avgFt    = 16.67;   // EMA of frame times in ms
+    let slowCnt  = 0;        // consecutive slow frames
+    let fastCnt  = 0;        // consecutive fast frames
+    let target   = targetCount();
+
+    /* ── Resize ───────────────────────────────────────────── */
     function resize() {
       const dpr = Math.min(window.devicePixelRatio ?? 1, 2);
       canvas.width  = window.innerWidth  * dpr;
       canvas.height = window.innerHeight * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      target = targetCount();
+      const w = window.innerWidth, h = window.innerHeight;
+
+      if (particles.length < target) {
+        const extra = Array.from(
+          { length: target - particles.length },
+          () => spawn(w, h),
+        );
+        particles.push(...extra);
+      } else if (particles.length > target) {
+        particles.splice(target);
+      }
+
+      /* Immediate opaque fill so dot-grid doesn't flash under canvas */
       ctx.fillStyle = BG + '1)';
       ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-      const w = window.innerWidth, h = window.innerHeight;
-      particles = Array.from({ length: PARTICLE_N }, () => spawnParticle(w, h));
     }
 
-    /* ── Attractor management ───────────────────────────────── */
-    function placeAttractor(x: number, y: number) {
-      if (attractors.length >= MAX_ATTRACT) attractors.shift();
-      attractors.push({
-        x, y,
-        col:  ATTRACTOR_PALETTE[colorIdx % ATTRACTOR_PALETTE.length],
-        born: performance.now(),
-      });
-      colorIdx++;
-    }
-
-    function removeNearest(x: number, y: number) {
-      if (!attractors.length) return;
-      let best = 0, bestD = Infinity;
-      for (let i = 0; i < attractors.length; i++) {
-        const dx = attractors[i].x - x, dy = attractors[i].y - y;
-        const d  = dx * dx + dy * dy;
-        if (d < bestD) { bestD = d; best = i; }
-      }
-      attractors.splice(best, 1);
-    }
-
-    /* ── Events ─────────────────────────────────────────────── */
-    let clickTimer: ReturnType<typeof setTimeout> | null = null;
-
+    /* ── Window events (canvas is pointer-events: none) ───── */
     const onMove  = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true; };
     const onLeave = ()               => { mouse.on = false; };
-
-    // Debounce single-click: wait 240ms to confirm it's not a double-click
-    const onClick = (e: MouseEvent) => {
-      if (clickTimer !== null) return;
-      const cx = e.clientX, cy = e.clientY;
-      clickTimer = setTimeout(() => {
-        placeAttractor(cx, cy);
-        clickTimer = null;
-      }, 240);
-    };
-
-    const onDbl = (e: MouseEvent) => {
-      e.preventDefault();
-      if (clickTimer !== null) { clearTimeout(clickTimer); clickTimer = null; }
-      removeNearest(e.clientX, e.clientY);
-    };
+    const onClick = (e: MouseEvent) => { burst = { x: e.clientX, y: e.clientY, at: performance.now() }; };
 
     resize();
     window.addEventListener('resize',     resize);
     window.addEventListener('mousemove',  onMove);
     window.addEventListener('mouseleave', onLeave);
     window.addEventListener('click',      onClick);
-    window.addEventListener('dblclick',   onDbl);
 
-    /* ── Attractor draw ─────────────────────────────────────── */
-    function drawAttractor(a: Attractor, now: number) {
-      const [r, g, b] = a.col;
-      const age   = (now - a.born) / 1800; // ring cycle
-      const W     = window.innerWidth;
+    /* ── Draw loop ────────────────────────────────────────── */
+    function draw(now: number) {
+      const dt = Math.min(now - last, 50);
+      last = now;
 
-      // 3 rings expanding outward in a repeating cycle, offset by 1/3 each
-      for (let i = 0; i < 3; i++) {
-        const phase = (age + i / 3) % 1;
-        const rad   = 14 + phase * 50;
-        const alpha = (1 - phase) * 0.45;
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, rad, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha.toFixed(3)})`;
-        ctx.lineWidth   = 1.5;
-        ctx.stroke();
+      /* Adaptive performance: exponential moving average of frame time */
+      avgFt = avgFt * 0.92 + dt * 0.08;
+
+      if (avgFt > FT_SLOW) {
+        slowCnt++;
+        fastCnt = 0;
+        if (slowCnt >= SLOW_FRAMES && particles.length > PARTICLE_MIN) {
+          const remove = Math.max(1, Math.ceil(particles.length * TRIM_PCT));
+          particles.splice(particles.length - remove, remove);
+          slowCnt = 0;
+        }
+      } else if (avgFt < FT_FAST) {
+        fastCnt++;
+        slowCnt = 0;
+        /* Gradually restore toward target when running comfortably fast */
+        if (fastCnt >= SLOW_FRAMES && particles.length < target) {
+          const add = Math.min(
+            Math.ceil(target * GROW_PCT),
+            target - particles.length,
+          );
+          for (let i = 0; i < add; i++) {
+            particles.push(spawn(window.innerWidth, window.innerHeight));
+          }
+          fastCnt = 0;
+        }
+      } else {
+        slowCnt = 0;
+        fastCnt = 0;
       }
 
-      // Glow halo (cheap radial gradient, no shadowBlur)
-      const halo = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, 28);
-      halo.addColorStop(0,   `rgba(${r},${g},${b},0.35)`);
-      halo.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-      ctx.fillStyle = halo;
-      ctx.beginPath();
-      ctx.arc(a.x, a.y, 28, 0, Math.PI * 2);
-      ctx.fill();
+      t += dt * TIME_SCALE;
 
-      // Core orb
-      const core = ctx.createRadialGradient(a.x, a.y, 0, a.x, a.y, 11);
-      core.addColorStop(0,   `rgba(255,255,255,0.9)`);
-      core.addColorStop(0.3, `rgba(${r},${g},${b},1)`);
-      core.addColorStop(1,   `rgba(${r},${g},${b},0)`);
-      ctx.fillStyle = core;
-      ctx.beginPath();
-      ctx.arc(a.x, a.y, 11, 0, Math.PI * 2);
-      ctx.fill();
-
-      void W; // suppress unused
-    }
-
-    /* ── Draw loop ──────────────────────────────────────────── */
-    function draw(now: number) {
       const W = window.innerWidth, H = window.innerHeight;
 
-      // Trailing fade
+      /* Trail fade */
       ctx.fillStyle = BG + TRAIL_ALPHA + ')';
       ctx.fillRect(0, 0, W, H);
 
-      // Attractor orbs (behind particles)
-      for (const a of attractors) drawAttractor(a, now);
+      const burstAge  = burst ? now - burst.at : Infinity;
+      const burstLive = burstAge < BURST_MS;
 
-      // Subtle cursor glow
-      if (mouse.on) {
-        const g = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, 30);
-        g.addColorStop(0, 'rgba(255,255,255,0.12)');
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(mouse.x, mouse.y, 30, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Particles
       for (const p of particles) {
-        // Cursor pull
-        if (mouse.on) pullParticle(p, mouse.x, mouse.y, CURSOR_G);
+        /* Flow field: two octaves of Perlin noise */
+        const ang = flowAngle(p.x, p.y, t);
+        p.vx += Math.cos(ang) * FORCE;
+        p.vy += Math.sin(ang) * FORCE;
 
-        // Attractor pulls
-        for (const a of attractors) pullParticle(p, a.x, a.y, ATTRACTOR_G);
+        /* Mouse vortex: tangential rotation around cursor */
+        if (mouse.on) {
+          const dx = p.x - mouse.x, dy = p.y - mouse.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < VORTEX_R * VORTEX_R && d2 > 0.1) {
+            const d = Math.sqrt(d2);
+            const s = (1 - d / VORTEX_R) * 2.8;
+            p.vx += (-dy / d) * s;
+            p.vy +=  (dx / d) * s;
+          }
+        }
 
-        // Integrate with damping + speed cap
+        /* Click burst: reverse nearby current (flow + velocity opposition) */
+        if (burstLive) {
+          const dx = p.x - burst!.x, dy = p.y - burst!.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < BURST_R * BURST_R) {
+            const d  = Math.sqrt(Math.max(d2, 0.1));
+            const proximity = 1 - d / BURST_R;
+            const decay     = Math.max(0, 1 - burstAge / BURST_MS);
+            const s         = proximity * decay;
+
+            /* 1. Oppose current velocity (reversal drag) */
+            p.vx -= p.vx * s * 0.45;
+            p.vy -= p.vy * s * 0.45;
+
+            /* 2. Apply force opposite to the natural flow direction at this point,
+                  so the particle fights the current rather than riding it */
+            const fa = flowAngle(p.x, p.y, t);
+            p.vx -= Math.cos(fa) * s * FORCE * 6;
+            p.vy -= Math.sin(fa) * s * FORCE * 6;
+          }
+        }
+
+        /* Integrate */
         p.vx *= DAMPING;
         p.vy *= DAMPING;
         const spd = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
         if (spd > MAX_SPEED) { p.vx = p.vx / spd * MAX_SPEED; p.vy = p.vy / spd * MAX_SPEED; }
-
         p.x += p.vx;
         p.y += p.vy;
+        p.life++;
 
-        // Wrap edges
-        if (p.x < -12) p.x = W + 12;
-        else if (p.x > W + 12) p.x = -12;
-        if (p.y < -12) p.y = H + 12;
-        else if (p.y > H + 12) p.y = -12;
+        /* Respawn when out of bounds or lifetime exhausted */
+        if (
+          p.life >= p.maxLife ||
+          p.x < -30 || p.x > W + 30 || p.y < -30 || p.y > H + 30
+        ) {
+          const np = spawn(W, H);
+          p.x = np.x; p.y = np.y; p.vx = 0; p.vy = 0;
+          p.col = np.col; p.life = 0; p.maxLife = np.maxLife;
+          continue;
+        }
 
-        // Draw — size + brightness scale with speed
-        const ratio = Math.min(spd / MAX_SPEED, 1);
-        const size  = 1.2 + ratio * 2.2;
-        const alpha = 0.35 + ratio * 0.6;
+        /* Alpha envelope: fade in/out at birth and death */
+        const age = p.life / p.maxLife;
+        const env = age < 0.08 ? age / 0.08 : age > 0.9 ? (1 - age) / 0.1 : 1;
+
         const [r, g, b] = p.col;
-        ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = `rgba(${r},${g},${b},${(env * 0.55).toFixed(2)})`;
+        ctx.fillRect(p.x, p.y, 2, 2);
       }
 
       raf = requestAnimationFrame(draw);
@@ -244,66 +272,25 @@ export default function FlowFieldCanvas() {
 
     return () => {
       cancelAnimationFrame(raf);
-      if (clickTimer !== null) clearTimeout(clickTimer);
       window.removeEventListener('resize',     resize);
       window.removeEventListener('mousemove',  onMove);
       window.removeEventListener('mouseleave', onLeave);
       window.removeEventListener('click',      onClick);
-      window.removeEventListener('dblclick',   onDbl);
     };
   }, []);
 
   return (
-    <>
-      <canvas
-        ref={canvasRef}
-        className="flow-field-canvas"
-        style={{
-          position: 'fixed',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
-          zIndex: 0,
-        }}
-      />
-      <div
-        style={{
-          position:      'fixed',
-          bottom:        0,
-          left:          0,
-          right:         0,
-          zIndex:        2,
-          padding:       '7px 16px',
-          background:    'rgba(30,30,36,0.38)',
-          backdropFilter: 'blur(6px)',
-          display:       'flex',
-          justifyContent: 'center',
-          gap:           '28px',
-          pointerEvents: 'none',
-        }}
-      >
-        {[
-          ['click',        'place attractor'],
-          ['double-click', 'remove nearest'],
-          ['move mouse',   'attract particles'],
-        ].map(([key, desc]) => (
-          <span key={key} style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <span style={{
-              fontFamily:    'var(--font-accent)',
-              fontSize:      '8px',
-              fontWeight:    700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.1em',
-              color:         'rgba(139,92,246,0.55)',
-            }}>{key}</span>
-            <span style={{
-              fontSize: '9px',
-              color:    'rgba(255,255,255,0.2)',
-            }}>{desc}</span>
-          </span>
-        ))}
-      </div>
-    </>
+    <canvas
+      ref={canvasRef}
+      className="flow-field-canvas"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }}
+    />
   );
 }
