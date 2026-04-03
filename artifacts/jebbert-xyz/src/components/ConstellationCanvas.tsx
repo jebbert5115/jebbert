@@ -168,81 +168,79 @@ export default function ConstellationCanvas() {
       const hue = s.hue;
       const cd  = s.connectDist;
 
-      // ── Draw: background star connections (fade-in/out per pair) ──
-      // Each pair's displayed opacity lerps toward its distance-based target,
-      // so connections bloom in as stars approach and dissolve as they drift apart.
-      const FADE_RATE = 0.12;   // ~0.35s to reach target at 60fps
-      const EXT_CD    = cd * 1.35; // pairs fade out inside this buffer zone
+      // ── Per-pair lerped opacity → smooth fade in/out ───────────────
+      // Each pair's displayed opacity lerps toward its distance-based target each frame.
+      // We render each segment at its EXACT lerped opacity so the neon fades continuously.
+      const FADE_RATE = 0.10;   // ~0.4s transition at 60fps
+      const EXT_CD    = cd * 1.4; // extra buffer so pairs finish fading after leaving range
 
-      type Seg = [number, number, number, number];
-      const segsLow:  Seg[] = [];
-      const segsHigh: Seg[] = [];
-      const pairOp    = pairOpRef.current;
-      const visited   = new Set<number>();
+      // [x1, y1, x2, y2, renderOp]
+      type SegOp = [number, number, number, number, number];
+      const segs: SegOp[] = [];
+
+      const pairOp  = pairOpRef.current;
+      const visited = new Set<number>();
 
       for (let i = 0; i < stars.length; i++) {
         const a = stars[i];
         for (let j = i + 1; j < stars.length; j++) {
-          const b  = stars[j];
-          const d  = Math.hypot(a.x - b.x, a.y - b.y);
-          const key = (i << 9) | j; // supports up to 512 stars
+          const b   = stars[j];
+          const d   = Math.hypot(a.x - b.x, a.y - b.y);
+          const key = (i << 9) | j;
 
           const hasPrev = pairOp.has(key);
-          if (d >= EXT_CD && !hasPrev) continue; // too far, never connected
+          if (d >= EXT_CD && !hasPrev) continue;
 
           visited.add(key);
 
-          // Target opacity: distance-based, 0 when beyond connect dist
           const target = d < cd ? (1 - d / cd) * 0.65 : 0;
           const cur    = hasPrev ? pairOp.get(key)! : 0;
           const next   = cur + (target - cur) * FADE_RATE;
 
-          if (next < 0.004) { pairOp.delete(key); continue; }
+          if (next < 0.003) { pairOp.delete(key); continue; }
           pairOp.set(key, next);
 
-          // Mouse proximity boost applied at render time only
-          const aNear = mActive && Math.hypot(a.x - mx, a.y - my) < s.mouseRadius;
-          const bNear = mActive && Math.hypot(b.x - mx, b.y - my) < s.mouseRadius;
+          // Mouse proximity boosts rendered opacity only (not the stored value)
+          const aNear    = mActive && Math.hypot(a.x - mx, a.y - my) < s.mouseRadius;
+          const bNear    = mActive && Math.hypot(b.x - mx, b.y - my) < s.mouseRadius;
           const renderOp = (aNear || bNear) ? Math.min(0.92, next * 2.6) : next;
 
-          if (renderOp < 0.28) segsLow.push([a.x, a.y, b.x, b.y]);
-          else                  segsHigh.push([a.x, a.y, b.x, b.y]);
+          segs.push([a.x, a.y, b.x, b.y, renderOp]);
         }
       }
 
-      // Fade out any stored pairs that drifted fully past EXT_CD this frame
+      // Fade out stored pairs that drifted past EXT_CD this frame
       pairOp.forEach((val, key) => {
         if (visited.has(key)) return;
-        const next = val * (1 - FADE_RATE * 1.5);
-        if (next < 0.004) pairOp.delete(key);
+        const next = val * (1 - FADE_RATE * 2);
+        if (next < 0.003) pairOp.delete(key);
         else pairOp.set(key, next);
       });
 
-      // Low tier: dim base lines
-      if (segsLow.length) {
+      // Base lines — per-line opacity, no shadow (strokeStyle changes are cheap)
+      ctx.lineWidth = 0.9;
+      for (const [x1, y1, x2, y2, op] of segs) {
         ctx.beginPath();
-        ctx.lineWidth = 0.8;
-        ctx.strokeStyle = `hsla(${hue},96%,82%,0.32)`;
-        for (const [x1,y1,x2,y2] of segsLow) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+        ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+        ctx.strokeStyle = `hsla(${hue},96%,84%,${op * 0.9})`;
+        ctx.lineWidth   = op > 0.45 ? 1.5 : 0.9;
         ctx.stroke();
       }
 
-      // High tier: bright core + neon glow pass
-      if (segsHigh.length) {
-        ctx.beginPath();
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = `hsla(${hue},96%,84%,0.72)`;
-        for (const [x1,y1,x2,y2] of segsHigh) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
-        ctx.stroke();
-
+      // Neon glow pass — shadowBlur set ONCE, only strokeStyle varies per line
+      // (changing shadowBlur causes GPU flush; changing strokeStyle does not)
+      if (segs.length) {
         ctx.save();
         ctx.shadowBlur  = 14;
         ctx.shadowColor = `hsl(${hue},100%,72%)`;
-        ctx.beginPath();
-        ctx.lineWidth = 1.0;
-        ctx.strokeStyle = `hsla(${hue},100%,92%,0.55)`;
-        for (const [x1,y1,x2,y2] of segsHigh) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
-        ctx.stroke();
+        ctx.lineWidth   = 1.0;
+        for (const [x1, y1, x2, y2, op] of segs) {
+          if (op < 0.08) continue; // skip nearly invisible lines
+          ctx.beginPath();
+          ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+          ctx.strokeStyle = `hsla(${hue},100%,92%,${op * 0.82})`;
+          ctx.stroke();
+        }
         ctx.restore();
       }
 
