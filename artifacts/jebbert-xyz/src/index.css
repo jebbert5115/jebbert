@@ -464,13 +464,16 @@ body::after {
 .games-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
   gap: 24px;
+  height: calc(100vh - 200px);
 }
 
 .game-card {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  justify-content: flex-start;
 }
 
 /* ── Game / Extra card header row (title + fullscreen btn) ── */
@@ -511,24 +514,19 @@ body::after {
 }
 
 /* ── Fullscreen card state ── */
-.card:fullscreen {
-  overflow-y: auto;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  border-radius: 0;
-  background: var(--bg);
-}
-
+.card:fullscreen,
 .card:-webkit-full-screen {
   overflow-y: auto;
   padding: 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   border-radius: 0;
   background: var(--bg);
+  width: 100vw;
+  height: 100vh;
+  box-sizing: border-box;
 }
 
 .card:fullscreen .game-header-row,
@@ -536,33 +534,72 @@ body::after {
 .card:fullscreen .card-header-row,
 .card:-webkit-full-screen .card-header-row {
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
   margin-bottom: 24px;
+  flex-shrink: 0;
 }
 
 .card:fullscreen canvas,
 .card:-webkit-full-screen canvas {
-  width: auto;
-  height: auto;
-  max-width: 80vmin;
-  max-height: 80vmin;
+  width: min(70vmin, 540px);
+  height: min(70vmin, 540px);
+  image-rendering: pixelated;
+  flex-shrink: 0;
 }
 
 .card:fullscreen .memory-grid,
 .card:-webkit-full-screen .memory-grid {
-  max-width: 480px;
+  max-width: min(70vmin, 540px);
 }
 
 .card:fullscreen .game-controls,
-.card:-webkit-full-screen .game-controls,
+.card:-webkit-full-screen .game-controls {
+  width: 100%;
+  max-width: 700px;
+  flex-shrink: 0;
+}
+
 .card:fullscreen .soundboard-grid,
-.card:-webkit-full-screen .soundboard-grid,
+.card:-webkit-full-screen .soundboard-grid {
+  width: 100%;
+  max-width: 700px;
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .card:fullscreen .vibe-options,
-.card:-webkit-full-screen .vibe-options,
+.card:-webkit-full-screen .vibe-options {
+  width: 100%;
+  max-width: 700px;
+}
+
 .card:fullscreen .terminal,
 .card:-webkit-full-screen .terminal {
   width: 100%;
-  max-width: 600px;
+  max-width: 700px;
+  height: 60vh;
+  flex-shrink: 1;
+}
+
+.card:fullscreen .red-button-container,
+.card:-webkit-full-screen .red-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  flex: 1;
+}
+
+.card:fullscreen .red-button-big,
+.card:-webkit-full-screen .red-button-big {
+  width: 220px;
+  height: 220px;
+  font-size: 20px;
+}
+
+.card:fullscreen .timer-display,
+.card:-webkit-full-screen .timer-display {
+  font-size: 80px;
 }
 
 .game-title {
@@ -659,7 +696,9 @@ canvas {
 .extras-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(4, 1fr);
   gap: 24px;
+  height: calc(100vh - 200px);
 }
 
 .terminal {
@@ -1069,10 +1108,14 @@ canvas {
 
   .games-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
+    height: auto;
   }
 
   .extras-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
+    height: auto;
   }
 
   .mobile-controls {
