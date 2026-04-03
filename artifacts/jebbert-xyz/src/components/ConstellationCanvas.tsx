@@ -1,21 +1,21 @@
 import { useRef, useEffect, useState } from 'react';
 
 interface Settings {
-  starCount: number;
+  starCount:   number;
   connectDist: number;
-  speed: number;
-  hue: number;
+  speed:       number;
+  hue:         number;
   mouseRadius: number;
-  attract: boolean;
+  attract:     boolean;
 }
 
 const DEFAULTS: Settings = {
-  starCount: 110,
+  starCount:   90,
   connectDist: 300,
-  speed: 1.0,
-  hue: 215,
+  speed:       1.0,
+  hue:         215,
   mouseRadius: 150,
-  attract: false,
+  attract:     false,
 };
 
 interface Star {
@@ -31,33 +31,35 @@ interface PaintStar {
   r: number;
   born: number;
   life: number;
+  strokeId: number; // which paint stroke this belongs to
 }
+
+let _strokeId = 0;
 
 function makeStars(w: number, h: number, count: number, speed: number): Star[] {
   return Array.from({ length: count }, () => {
     const angle = Math.random() * Math.PI * 2;
-    const spd = (0.12 + Math.random() * 0.32) * speed;
+    const spd   = (0.12 + Math.random() * 0.32) * speed;
     return {
-      x: Math.random() * w,
-      y: Math.random() * h,
-      vx: Math.cos(angle) * spd,
-      vy: Math.sin(angle) * spd,
-      r: 1.2 + Math.random() * 2.4,
+      x: Math.random() * w, y: Math.random() * h,
+      vx: Math.cos(angle) * spd, vy: Math.sin(angle) * spd,
+      r: 1.2 + Math.random() * 2.2,
       phase: Math.random() * Math.PI * 2,
     };
   });
 }
 
 export default function ConstellationCanvas() {
-  const canvasRef      = useRef<HTMLCanvasElement>(null);
-  const starsRef       = useRef<Star[]>([]);
-  const paintStarsRef  = useRef<PaintStar[]>([]);
-  const mouseRef       = useRef({ x: -9999, y: -9999, active: false });
-  const dragRef        = useRef<{ idx: number; prevX: number; prevY: number; vx: number; vy: number } | null>(null);
+  const canvasRef       = useRef<HTMLCanvasElement>(null);
+  const starsRef        = useRef<Star[]>([]);
+  const paintStarsRef   = useRef<PaintStar[]>([]);
+  const mouseRef        = useRef({ x: -9999, y: -9999, active: false });
+  const dragRef         = useRef<{ idx: number; prevX: number; prevY: number; vx: number; vy: number } | null>(null);
   const dragReleasedRef = useRef<number>(-9999);
-  const isPaintingRef  = useRef(false);
-  const lastPaintRef   = useRef({ x: -9999, y: -9999 });
-  const settingsRef    = useRef<Settings>(DEFAULTS);
+  const isPaintingRef   = useRef(false);
+  const lastPaintRef    = useRef({ x: -9999, y: -9999 });
+  const curStrokeRef    = useRef<number>(-1);
+  const settingsRef     = useRef<Settings>(DEFAULTS);
 
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
   const [showSettings, setShowSettings] = useState(false);
@@ -86,19 +88,19 @@ export default function ConstellationCanvas() {
       const { width: W, height: H } = canvas;
       const stars = starsRef.current;
       const { x: mx, y: my, active: mActive } = mouseRef.current;
+      const now = performance.now();
 
       ctx.clearRect(0, 0, W, H);
 
-      // ── Physics: regular stars ──
+      // ── Physics: regular stars ──────────────────────────────
+      const dragCooldown = ts - dragReleasedRef.current < 800;
       for (let i = 0; i < stars.length; i++) {
         const st = stars[i];
         if (dragRef.current?.idx === i) continue;
 
-        const dragCooldown = ts - dragReleasedRef.current < 800;
-
         if (mActive && !dragCooldown) {
           const dx = st.x - mx, dy = st.y - my;
-          const d = Math.hypot(dx, dy);
+          const d  = Math.hypot(dx, dy);
           if (d < s.mouseRadius && d > 0) {
             const strength = (1 - d / s.mouseRadius) * 1.4;
             const dir = s.attract ? -1 : 1;
@@ -107,11 +109,25 @@ export default function ConstellationCanvas() {
           }
         }
 
-        // Wander
+        // Gentle pull toward nearby paint stars (background reacts to drawing)
+        if (isPaintingRef.current) {
+          for (const ps of paintStarsRef.current) {
+            const age = now - ps.born;
+            if (age > 800) continue; // only fresh paint attracts
+            const dx = ps.x - st.x, dy = ps.y - st.y;
+            const d  = Math.hypot(dx, dy);
+            if (d < 180 && d > 0) {
+              const pull = (1 - d / 180) * 0.08;
+              st.vx += (dx / d) * pull;
+              st.vy += (dy / d) * pull;
+            }
+          }
+        }
+
         st.vx += (Math.random() - 0.5) * 0.012 * s.speed;
         st.vy += (Math.random() - 0.5) * 0.012 * s.speed;
 
-        const spd    = Math.hypot(st.vx, st.vy);
+        const spd     = Math.hypot(st.vx, st.vy);
         const baseSpd = 0.28 * s.speed;
         const maxSpd  = 3.5  * s.speed;
 
@@ -119,40 +135,29 @@ export default function ConstellationCanvas() {
           st.vx = (st.vx / spd) * maxSpd;
           st.vy = (st.vy / spd) * maxSpd;
         } else if (spd > baseSpd) {
-          st.vx *= 0.991;
-          st.vy *= 0.991;
+          st.vx *= 0.991; st.vy *= 0.991;
         } else if (spd > 0.001) {
-          const boost = baseSpd / spd;
-          st.vx *= Math.min(boost, 1.04);
-          st.vy *= Math.min(boost, 1.04);
+          const b = Math.min(baseSpd / spd, 1.04);
+          st.vx *= b; st.vy *= b;
         } else {
           const a = Math.random() * Math.PI * 2;
-          st.vx = Math.cos(a) * baseSpd;
-          st.vy = Math.sin(a) * baseSpd;
+          st.vx = Math.cos(a) * baseSpd; st.vy = Math.sin(a) * baseSpd;
         }
 
-        st.x += st.vx;
-        st.y += st.vy;
-
-        if (st.x < 0)  { st.x = 0;  st.vx =  Math.abs(st.vx); }
-        if (st.x > W)  { st.x = W;  st.vx = -Math.abs(st.vx); }
-        if (st.y < 0)  { st.y = 0;  st.vy =  Math.abs(st.vy); }
-        if (st.y > H)  { st.y = H;  st.vy = -Math.abs(st.vy); }
+        st.x += st.vx; st.y += st.vy;
+        if (st.x < 0) { st.x = 0; st.vx =  Math.abs(st.vx); }
+        if (st.x > W) { st.x = W; st.vx = -Math.abs(st.vx); }
+        if (st.y < 0) { st.y = 0; st.vy =  Math.abs(st.vy); }
+        if (st.y > H) { st.y = H; st.vy = -Math.abs(st.vy); }
       }
 
-      // ── Physics: paint stars (drift + fade) ──
-      paintStarsRef.current = paintStarsRef.current.filter(ps => {
-        const age = performance.now() - ps.born;
-        return age < ps.life;
-      });
-
+      // ── Physics: paint stars ────────────────────────────────
+      paintStarsRef.current = paintStarsRef.current.filter(ps => now - ps.born < ps.life);
       for (const ps of paintStarsRef.current) {
-        ps.vx += (Math.random() - 0.5) * 0.008;
-        ps.vy += (Math.random() - 0.5) * 0.008;
-        ps.vx *= 0.98;
-        ps.vy *= 0.98;
-        ps.x += ps.vx;
-        ps.y += ps.vy;
+        ps.vx += (Math.random() - 0.5) * 0.006;
+        ps.vy += (Math.random() - 0.5) * 0.006;
+        ps.vx *= 0.985; ps.vy *= 0.985;
+        ps.x += ps.vx; ps.y += ps.vy;
         if (ps.x < 0) { ps.x = 0; ps.vx = Math.abs(ps.vx); }
         if (ps.x > W) { ps.x = W; ps.vx = -Math.abs(ps.vx); }
         if (ps.y < 0) { ps.y = 0; ps.vy = Math.abs(ps.vy); }
@@ -161,114 +166,158 @@ export default function ConstellationCanvas() {
 
       const hue = s.hue;
       const cd  = s.connectDist;
-      const now = performance.now();
 
-      // ── Draw: neon lines between regular stars ──
-      ctx.save();
-      ctx.shadowBlur  = 10;
-      ctx.shadowColor = `hsl(${hue},100%,72%)`;
+      // ── Draw: background star connections (BATCHED) ─────────
+      // Two-pass batch approach: one path per opacity tier — no per-stroke state changes
+      type Seg = [number, number, number, number];
+      const segsLow:  Seg[] = [];
+      const segsHigh: Seg[] = [];
 
       for (let i = 0; i < stars.length; i++) {
+        const a = stars[i];
         for (let j = i + 1; j < stars.length; j++) {
-          const a = stars[i], b = stars[j];
+          const b = stars[j];
           const d = Math.hypot(a.x - b.x, a.y - b.y);
           if (d >= cd) continue;
 
-          let op = (1 - d / cd) * 0.72;
+          let op = (1 - d / cd) * 0.65;
           const aNear = mActive && Math.hypot(a.x - mx, a.y - my) < s.mouseRadius;
           const bNear = mActive && Math.hypot(b.x - mx, b.y - my) < s.mouseRadius;
-          if (aNear || bNear) op = Math.min(0.97, op * 2.8);
+          if (aNear || bNear) op = Math.min(0.92, op * 2.6);
 
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = `hsla(${hue},96%,82%,${op})`;
-          ctx.lineWidth   = op > 0.55 ? 1.5 : 0.9;
-          ctx.stroke();
-        }
-
-        // Mouse cursor lines
-        if (mActive) {
-          const dx = stars[i].x - mx, dy = stars[i].y - my;
-          const d  = Math.hypot(dx, dy);
-          const cursorR = s.mouseRadius * 0.72;
-          if (d < cursorR) {
-            const op = (1 - d / cursorR) * 0.97;
-            ctx.beginPath();
-            ctx.moveTo(mx, my);
-            ctx.lineTo(stars[i].x, stars[i].y);
-            ctx.strokeStyle = `hsla(${hue},100%,90%,${op})`;
-            ctx.lineWidth   = op > 0.6 ? 1.8 : 1.1;
-            ctx.stroke();
-          }
+          if (op < 0.28) segsLow.push([a.x, a.y, b.x, b.y]);
+          else           segsHigh.push([a.x, a.y, b.x, b.y]);
         }
       }
-      ctx.restore();
 
-      // ── Draw: neon lines from paint stars ──
-      if (paintStarsRef.current.length > 0) {
+      // Low tier: thin, single batch
+      if (segsLow.length) {
+        ctx.beginPath();
+        ctx.lineWidth = 0.7;
+        ctx.strokeStyle = `hsla(${hue},88%,78%,0.18)`;
+        for (const [x1,y1,x2,y2] of segsLow) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+        ctx.stroke();
+      }
+
+      // High tier: slightly brighter, single batch
+      if (segsHigh.length) {
+        ctx.beginPath();
+        ctx.lineWidth = 1.1;
+        ctx.strokeStyle = `hsla(${hue},92%,84%,0.52)`;
+        for (const [x1,y1,x2,y2] of segsHigh) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+        ctx.stroke();
+
+        // Neon glow pass on high tier only (one shadow flush, much cheaper)
         ctx.save();
-        ctx.shadowBlur  = 14;
-        ctx.shadowColor = `hsl(${hue},100%,80%)`;
-
-        for (let pi = 0; pi < paintStarsRef.current.length; pi++) {
-          const ps  = paintStarsRef.current[pi];
-          const pAge = now - ps.born;
-          const pOp  = Math.max(0, 1 - pAge / ps.life);
-
-          // Paint star → regular stars
-          for (let i = 0; i < stars.length; i++) {
-            const st = stars[i];
-            const d  = Math.hypot(ps.x - st.x, ps.y - st.y);
-            if (d >= cd) continue;
-            const op = (1 - d / cd) * 0.88 * pOp;
-            ctx.beginPath();
-            ctx.moveTo(ps.x, ps.y);
-            ctx.lineTo(st.x, st.y);
-            ctx.strokeStyle = `hsla(${hue},100%,88%,${op})`;
-            ctx.lineWidth   = op > 0.5 ? 1.6 : 1.0;
-            ctx.stroke();
-          }
-
-          // Paint star → other paint stars
-          for (let pj = pi + 1; pj < paintStarsRef.current.length; pj++) {
-            const ps2  = paintStarsRef.current[pj];
-            const pAge2 = now - ps2.born;
-            const pOp2  = Math.max(0, 1 - pAge2 / ps2.life);
-            const d    = Math.hypot(ps.x - ps2.x, ps.y - ps2.y);
-            if (d >= cd) continue;
-            const op = (1 - d / cd) * 0.92 * Math.min(pOp, pOp2);
-            ctx.beginPath();
-            ctx.moveTo(ps.x, ps.y);
-            ctx.lineTo(ps2.x, ps2.y);
-            ctx.strokeStyle = `hsla(${hue},100%,92%,${op})`;
-            ctx.lineWidth   = 1.6;
-            ctx.stroke();
-          }
-        }
+        ctx.shadowBlur  = 8;
+        ctx.shadowColor = `hsl(${hue},100%,72%)`;
+        ctx.beginPath();
+        ctx.lineWidth = 0.7;
+        ctx.strokeStyle = `hsla(${hue},100%,90%,0.32)`;
+        for (const [x1,y1,x2,y2] of segsHigh) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+        ctx.stroke();
         ctx.restore();
       }
 
-      // ── Draw: regular star dots ──
-      ctx.save();
-      ctx.shadowBlur  = 18;
-      ctx.shadowColor = `hsl(${hue},100%,75%)`;
+      // ── Draw: cursor connector lines ────────────────────────
+      if (mActive) {
+        const cursorR = s.mouseRadius * 0.72;
+        const curSegs: Seg[] = [];
+        for (const st of stars) {
+          const d = Math.hypot(st.x - mx, st.y - my);
+          if (d < cursorR) curSegs.push([mx, my, st.x, st.y]);
+        }
+        if (curSegs.length) {
+          ctx.save();
+          ctx.shadowBlur  = 10;
+          ctx.shadowColor = `hsl(${hue},100%,80%)`;
+          ctx.beginPath();
+          ctx.lineWidth = 1.2;
+          ctx.strokeStyle = `hsla(${hue},100%,92%,0.72)`;
+          for (const [x1,y1,x2,y2] of curSegs) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
 
+      // ── Draw: paint star connections ────────────────────────
+      const paint = paintStarsRef.current;
+      if (paint.length > 0) {
+        // Sequential constellation lines (i → i+1, same stroke) — the "drawing"
+        const seqSegs: Array<[number,number,number,number,number]> = []; // x1,y1,x2,y2,op
+        for (let i = 0; i < paint.length - 1; i++) {
+          const ps  = paint[i];
+          const ps2 = paint[i + 1];
+          if (ps.strokeId !== ps2.strokeId) continue;
+          const op1 = Math.max(0, 1 - (now - ps.born)  / ps.life);
+          const op2 = Math.max(0, 1 - (now - ps2.born) / ps2.life);
+          const op  = Math.min(op1, op2);
+          if (op > 0.01) seqSegs.push([ps.x, ps.y, ps2.x, ps2.y, op]);
+        }
+
+        if (seqSegs.length) {
+          // Glow underlay
+          ctx.save();
+          ctx.shadowBlur  = 16;
+          ctx.shadowColor = `hsl(${hue},100%,82%)`;
+          ctx.lineWidth = 2.2;
+          ctx.strokeStyle = `hsla(${hue},100%,88%,0.55)`;
+          ctx.beginPath();
+          for (const [x1,y1,x2,y2] of seqSegs) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+          ctx.stroke();
+          ctx.restore();
+
+          // Bright core line
+          ctx.beginPath();
+          ctx.lineWidth = 1.1;
+          ctx.strokeStyle = `hsla(${hue},80%,100%,0.85)`;
+          for (const [x1,y1,x2,y2] of seqSegs) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+          ctx.stroke();
+        }
+
+        // Paint-to-background-star connections (batched)
+        const pBgSegs: Seg[] = [];
+        for (const ps of paint) {
+          const pOp = Math.max(0, 1 - (now - ps.born) / ps.life);
+          if (pOp < 0.05) continue;
+          for (const st of stars) {
+            const d = Math.hypot(ps.x - st.x, ps.y - st.y);
+            if (d < cd * 0.6) pBgSegs.push([ps.x, ps.y, st.x, st.y]);
+          }
+        }
+        if (pBgSegs.length) {
+          ctx.save();
+          ctx.shadowBlur  = 10;
+          ctx.shadowColor = `hsl(${hue},100%,78%)`;
+          ctx.beginPath();
+          ctx.lineWidth = 0.9;
+          ctx.strokeStyle = `hsla(${hue},95%,85%,0.45)`;
+          for (const [x1,y1,x2,y2] of pBgSegs) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // ── Draw: regular star dots ────────────────────────────
+      // One shadowBlur state for all stars
+      ctx.save();
+      ctx.shadowBlur  = 14;
+      ctx.shadowColor = `hsl(${hue},100%,72%)`;
       for (let i = 0; i < stars.length; i++) {
         const st     = stars[i];
         const pulse  = 0.5 + 0.5 * Math.sin(ts * 0.0014 + st.phase);
-        const isDragged = dragRef.current?.idx === i;
+        const isDrag = dragRef.current?.idx === i;
         const dMouse = mActive ? Math.hypot(st.x - mx, st.y - my) : 9999;
         const isNear = dMouse < s.mouseRadius;
 
-        const glowA = isDragged ? 1 : isNear ? 0.9 + 0.1 * pulse : 0.45 + 0.3 * pulse;
-        const starR  = isDragged ? st.r * 2.5 : isNear ? st.r * 1.8 : st.r;
-        const glowR  = starR * 7;
+        const glowA = isDrag ? 1 : isNear ? 0.88 + 0.12 * pulse : 0.35 + 0.25 * pulse;
+        const starR  = isDrag ? st.r * 2.5 : isNear ? st.r * 1.7 : st.r;
+        const glowR  = starR * 6;
 
         const g = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, glowR);
-        g.addColorStop(0,   `hsla(${hue},95%,98%,${glowA * 0.85})`);
-        g.addColorStop(0.35,`hsla(${hue},90%,85%,${glowA * 0.35})`);
-        g.addColorStop(1,   `hsla(${hue},80%,70%,0)`);
+        g.addColorStop(0,    `hsla(${hue},95%,98%,${glowA * 0.9})`);
+        g.addColorStop(0.38, `hsla(${hue},88%,82%,${glowA * 0.3})`);
+        g.addColorStop(1,    `hsla(${hue},70%,65%,0)`);
         ctx.beginPath();
         ctx.arc(st.x, st.y, glowR, 0, Math.PI * 2);
         ctx.fillStyle = g;
@@ -276,50 +325,49 @@ export default function ConstellationCanvas() {
 
         ctx.beginPath();
         ctx.arc(st.x, st.y, starR, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${hue},60%,100%,1)`;
+        ctx.fillStyle = `hsla(${hue},50%,100%,1)`;
         ctx.fill();
       }
       ctx.restore();
 
-      // ── Draw: paint star dots ──
-      if (paintStarsRef.current.length > 0) {
+      // ── Draw: paint star dots ─────────────────────────────
+      if (paint.length > 0) {
         ctx.save();
-        ctx.shadowBlur  = 22;
-        ctx.shadowColor = `hsl(${hue},100%,85%)`;
-
-        for (const ps of paintStarsRef.current) {
-          const pAge = now - ps.born;
-          const pOp  = Math.max(0, 1 - pAge / ps.life);
-          const glowR = ps.r * 8 * pOp;
-
+        ctx.shadowBlur  = 20;
+        ctx.shadowColor = `hsl(${hue},100%,88%)`;
+        for (const ps of paint) {
+          const pOp  = Math.max(0, 1 - (now - ps.born) / ps.life);
+          if (pOp < 0.02) continue;
+          const starR = ps.r * (0.7 + 0.3 * pOp);
+          const glowR = starR * 9 * pOp;
           if (glowR <= 0) continue;
 
           const g = ctx.createRadialGradient(ps.x, ps.y, 0, ps.x, ps.y, glowR);
-          g.addColorStop(0,   `hsla(${hue},100%,100%,${pOp * 0.9})`);
-          g.addColorStop(0.4, `hsla(${hue},95%,88%,${pOp * 0.4})`);
-          g.addColorStop(1,   `hsla(${hue},90%,75%,0)`);
+          g.addColorStop(0,   `hsla(${hue},100%,100%,${pOp})`);
+          g.addColorStop(0.4, `hsla(${hue},95%,85%,${pOp * 0.4})`);
+          g.addColorStop(1,   `hsla(${hue},85%,70%,0)`);
           ctx.beginPath();
           ctx.arc(ps.x, ps.y, glowR, 0, Math.PI * 2);
           ctx.fillStyle = g;
           ctx.fill();
 
           ctx.beginPath();
-          ctx.arc(ps.x, ps.y, ps.r * pOp, 0, Math.PI * 2);
-          ctx.fillStyle = `hsla(${hue},70%,100%,${pOp})`;
+          ctx.arc(ps.x, ps.y, starR, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${hue},60%,100%,${pOp})`;
           ctx.fill();
         }
         ctx.restore();
       }
 
-      // ── Cursor glow ──
+      // ── Cursor glow ───────────────────────────────────────
       if (mActive) {
         ctx.save();
-        ctx.shadowBlur  = 20;
-        ctx.shadowColor = `hsl(${hue},100%,82%)`;
-        const cp = 0.75 + 0.25 * Math.sin(ts * 0.004);
+        ctx.shadowBlur  = 18;
+        ctx.shadowColor = `hsl(${hue},100%,84%)`;
+        const cp = 0.8 + 0.2 * Math.sin(ts * 0.004);
         const cg = ctx.createRadialGradient(mx, my, 0, mx, my, 14);
         cg.addColorStop(0, `hsla(${hue},100%,100%,${cp})`);
-        cg.addColorStop(1, `hsla(${hue},90%,82%,0)`);
+        cg.addColorStop(1, `hsla(${hue},88%,80%,0)`);
         ctx.beginPath();
         ctx.arc(mx, my, 14, 0, Math.PI * 2);
         ctx.fillStyle = cg;
@@ -346,7 +394,6 @@ export default function ConstellationCanvas() {
       mouseRef.current.y = e.clientY;
       mouseRef.current.active = true;
 
-      // Update dragged star position
       if (dragRef.current) {
         const dr = dragRef.current;
         const dx = e.clientX - dr.prevX, dy = e.clientY - dr.prevY;
@@ -358,20 +405,21 @@ export default function ConstellationCanvas() {
         return;
       }
 
-      // Paint mode: spawn new stars along the drag path
       if (isPaintingRef.current) {
-        const lp = lastPaintRef.current;
+        const lp   = lastPaintRef.current;
         const dist = Math.hypot(e.clientX - lp.x, e.clientY - lp.y);
-        if (dist >= 12) {
-          const spread = 0.6;
+        if (dist >= 10 && paintStarsRef.current.length < 250) {
+          const dirX = (e.clientX - lp.x) / dist;
+          const dirY = (e.clientY - lp.y) / dist;
           paintStarsRef.current.push({
-            x:    e.clientX + (Math.random() - 0.5) * 6,
-            y:    e.clientY + (Math.random() - 0.5) * 6,
-            vx:   (e.clientX - lp.x) / dist * 0.4 + (Math.random() - 0.5) * spread,
-            vy:   (e.clientY - lp.y) / dist * 0.4 + (Math.random() - 0.5) * spread,
-            r:    1.4 + Math.random() * 2.0,
+            x: e.clientX + (Math.random() - 0.5) * 4,
+            y: e.clientY + (Math.random() - 0.5) * 4,
+            vx: dirX * 0.35 + (Math.random() - 0.5) * 0.4,
+            vy: dirY * 0.35 + (Math.random() - 0.5) * 0.4,
+            r:  1.8 + Math.random() * 2.2,
             born: performance.now(),
-            life: 4500 + Math.random() * 2000,
+            life: 6000 + Math.random() * 3000,
+            strokeId: curStrokeRef.current,
           });
           lastPaintRef.current = { x: e.clientX, y: e.clientY };
         }
@@ -382,7 +430,6 @@ export default function ConstellationCanvas() {
       const tgt = e.target as HTMLElement;
       if (tgt.closest('button,a,input,select,textarea,[role="button"]')) return;
 
-      // Try to grab a nearby star to drag
       const stars = starsRef.current;
       let best = -1, bestD = 48;
       for (let i = 0; i < stars.length; i++) {
@@ -392,18 +439,20 @@ export default function ConstellationCanvas() {
       if (best >= 0) {
         dragRef.current = { idx: best, prevX: e.clientX, prevY: e.clientY, vx: 0, vy: 0 };
       } else {
-        // No star grabbed — enter paint mode
         isPaintingRef.current = true;
+        curStrokeRef.current  = ++_strokeId;
         lastPaintRef.current  = { x: e.clientX, y: e.clientY };
-        // Spawn the first star at click point
-        paintStarsRef.current.push({
-          x: e.clientX, y: e.clientY,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
-          r:  1.6 + Math.random() * 2.0,
-          born: performance.now(),
-          life: 4500 + Math.random() * 2000,
-        });
+        if (paintStarsRef.current.length < 250) {
+          paintStarsRef.current.push({
+            x: e.clientX, y: e.clientY,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            r:  2.0 + Math.random() * 2.2,
+            born: performance.now(),
+            life: 6000 + Math.random() * 3000,
+            strokeId: curStrokeRef.current,
+          });
+        }
       }
     };
 
@@ -465,7 +514,7 @@ export default function ConstellationCanvas() {
 
             <div className="cs-row">
               <label className="cs-label">Stars <span>{settings.starCount}</span></label>
-              <input type="range" className="cs-slider" min="30" max="220" value={settings.starCount}
+              <input type="range" className="cs-slider" min="30" max="200" value={settings.starCount}
                 onChange={e => update('starCount', +e.target.value)} />
             </div>
 
@@ -508,7 +557,7 @@ export default function ConstellationCanvas() {
               </div>
             </div>
 
-            <div className="cs-hint">click + drag to paint stars<br/>grab a star to fling it</div>
+            <div className="cs-hint">click + drag to draw a constellation<br/>grab a star to fling it</div>
           </div>
         )}
       </div>
