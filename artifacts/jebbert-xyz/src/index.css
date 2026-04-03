@@ -175,9 +175,10 @@ body::after {
 
 /* ── Presence block: unified Discord + Spotify + Game ── */
 .presence-block {
-  border: 1px solid var(--border);
+  border: 1px solid rgba(124, 58, 237, 0.35);
   border-radius: 12px;
-  background: rgba(12, 12, 20, 0.25);
+  background: rgba(12, 12, 20, 0.45);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 4px 24px rgba(0,0,0,0.4);
   overflow: visible;
 }
 
@@ -198,7 +199,7 @@ body::after {
 /* Mid row inside block: flush, no gap, divider on top */
 .presence-block .home-mid-row {
   gap: 0;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(124, 58, 237, 0.25);
 }
 
 /* Cards inside the mid-row: strip individual borders/bg */
@@ -210,7 +211,7 @@ body::after {
 
 /* Vertical divider between Spotify and Game */
 .presence-block .home-mid-row > :first-child {
-  border-right: 1px solid var(--border);
+  border-right: 1px solid rgba(124, 58, 237, 0.25);
   border-bottom-left-radius: 12px;
   overflow: hidden;
 }
