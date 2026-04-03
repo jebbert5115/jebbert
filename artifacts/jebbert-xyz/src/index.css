@@ -1525,9 +1525,13 @@ canvas.flow-field-canvas {
 .dp-avatar-wrap {
   position: relative;
   display: inline-block;
+  width: 88px;
+  height: 88px;
   margin-top: -44px;
   margin-bottom: 8px;
   overflow: visible;
+  vertical-align: top;
+  flex-shrink: 0;
 }
 
 .dp-avatar {
@@ -1542,11 +1546,11 @@ canvas.flow-field-canvas {
 
 .dp-decoration {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 44px;
+  left: 44px;
+  width: 120px;
+  height: 120px;
   transform: translate(-50%, -50%);
-  width: 116px;
-  height: 116px;
   pointer-events: none;
   image-rendering: auto;
   z-index: 2;
