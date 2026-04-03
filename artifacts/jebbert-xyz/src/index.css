@@ -160,8 +160,9 @@ body::after {
 
 .hero-social {
   flex-shrink: 0;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
 }
 
 /* Mid row: Now Playing + About Me side by side */
@@ -1163,6 +1164,16 @@ canvas.flow-field-canvas {
     grid-template-columns: 1fr;
   }
 
+  .hero-profile {
+    flex-wrap: wrap;
+  }
+
+  .hero-social {
+    width: 100%;
+    justify-content: flex-start;
+    flex-shrink: 1;
+  }
+
   .games-grid {
     grid-template-columns: 1fr;
     grid-template-rows: none;
@@ -1196,6 +1207,19 @@ canvas.flow-field-canvas {
 @media (max-width: 480px) {
   .page-wrapper {
     padding: 16px 12px 48px;
+  }
+
+  .hero-card {
+    padding: 16px;
+  }
+
+  .hero-profile {
+    gap: 14px;
+  }
+
+  .avatar-img {
+    width: 64px;
+    height: 64px;
   }
 
   .memory-grid {
