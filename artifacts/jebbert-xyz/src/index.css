@@ -1217,6 +1217,11 @@ canvas.flow-field-canvas {
     gap: 14px;
   }
 
+  .avatar-wrapper {
+    width: 64px;
+    height: 64px;
+  }
+
   .avatar-img {
     width: 64px;
     height: 64px;

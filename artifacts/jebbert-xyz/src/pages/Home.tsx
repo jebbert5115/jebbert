@@ -6,7 +6,7 @@ import FlowFieldCanvas from '../components/FlowFieldCanvas';
 
 export default function Home() {
   const { data, loading, avatarUrl, avatarFallback, customStatus } = useLanyard();
-  const [imgSrc, setImgSrc] = useState(avatarUrl);
+  const [imgFailed, setImgFailed] = useState(false);
 
   const statusClass = data ? `status-${data.discord_status}` : 'status-offline';
   const dotClass = data?.discord_status ?? 'offline';
@@ -31,9 +31,9 @@ export default function Home() {
             <div className={`avatar-wrapper ${statusClass}`}>
               <img
                 className="avatar-img"
-                src={resolvedAvatar}
+                src={imgFailed ? (avatarFallback || 'https://cdn.discordapp.com/embed/avatars/0.png') : resolvedAvatar}
                 alt="Jebbert avatar"
-                onError={() => setImgSrc(avatarFallback || 'https://cdn.discordapp.com/embed/avatars/0.png')}
+                onError={() => setImgFailed(true)}
               />
               <span className={`status-dot ${dotClass}`} />
             </div>
