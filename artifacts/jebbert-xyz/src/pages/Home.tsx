@@ -54,7 +54,6 @@ export default function Home() {
 
           {/* ── Unified presence block ── */}
           <div className="card presence-block">
-            <div className="card-title">Discord Presence</div>
             <div className="presence-inner">
               <DiscordProfile
                 data={data}

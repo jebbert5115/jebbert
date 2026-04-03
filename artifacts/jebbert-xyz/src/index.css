@@ -181,10 +181,6 @@ body::after {
   overflow: hidden;
 }
 
-.card.presence-block > .card-title {
-  padding: 16px 20px 12px;
-  margin: 0;
-}
 
 /* Discord profile inside block — strip its own card chrome */
 .presence-block .discord-profile {
