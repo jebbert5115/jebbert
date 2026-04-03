@@ -51,6 +51,7 @@ export default function ConstellationCanvas() {
   const mouseRef = useRef({ x: -9999, y: -9999, active: false });
   const wavesRef = useRef<Wave[]>([]);
   const dragRef = useRef<{ idx: number; prevX: number; prevY: number; vx: number; vy: number } | null>(null);
+  const dragReleasedRef = useRef<number>(-9999);
   const settingsRef = useRef<Settings>(DEFAULTS);
 
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
@@ -87,7 +88,9 @@ export default function ConstellationCanvas() {
         const st = stars[i];
         if (dragRef.current?.idx === i) continue;
 
-        if (mActive) {
+        const dragCooldown = ts - dragReleasedRef.current < 800;
+
+        if (mActive && !dragCooldown) {
           const dx = st.x - mx, dy = st.y - my;
           const d = Math.hypot(dx, dy);
           if (d < s.mouseRadius && d > 0) {
@@ -111,11 +114,33 @@ export default function ConstellationCanvas() {
           }
         }
 
+        // Wander: tiny random nudge each frame so stars never fully stop
+        st.vx += (Math.random() - 0.5) * 0.012 * s.speed;
+        st.vy += (Math.random() - 0.5) * 0.012 * s.speed;
+
         const spd = Math.hypot(st.vx, st.vy);
-        const maxSpd = 3.5 * s.speed;
-        if (spd > maxSpd) { st.vx = (st.vx / spd) * maxSpd; st.vy = (st.vy / spd) * maxSpd; }
-        st.vx *= 0.991;
-        st.vy *= 0.991;
+        const baseSpd = 0.28 * s.speed;
+        const maxSpd  = 3.5  * s.speed;
+
+        if (spd > maxSpd) {
+          // Hard cap when too fast
+          st.vx = (st.vx / spd) * maxSpd;
+          st.vy = (st.vy / spd) * maxSpd;
+        } else if (spd > baseSpd) {
+          // Gentle damp only above base speed
+          st.vx *= 0.991;
+          st.vy *= 0.991;
+        } else if (spd > 0.001) {
+          // Below base — nudge back up toward base speed
+          const boost = baseSpd / spd;
+          st.vx *= Math.min(boost, 1.04);
+          st.vy *= Math.min(boost, 1.04);
+        } else {
+          // Completely stopped — give a random kick
+          const a = Math.random() * Math.PI * 2;
+          st.vx = Math.cos(a) * baseSpd;
+          st.vy = Math.sin(a) * baseSpd;
+        }
 
         st.x += st.vx;
         st.y += st.vy;
@@ -272,6 +297,7 @@ export default function ConstellationCanvas() {
         st.vx = dragRef.current.vx * 0.45;
         st.vy = dragRef.current.vy * 0.45;
         dragRef.current = null;
+        dragReleasedRef.current = performance.now();
       } else if (!isInteractive) {
         wavesRef.current.push({ x: e.clientX, y: e.clientY, born: performance.now() });
       }
@@ -284,6 +310,7 @@ export default function ConstellationCanvas() {
         st.vx = dragRef.current.vx * 0.45;
         st.vy = dragRef.current.vy * 0.45;
         dragRef.current = null;
+        dragReleasedRef.current = performance.now();
       }
     };
 
@@ -307,6 +334,15 @@ export default function ConstellationCanvas() {
       />
 
       <div className="constellation-controls">
+        <button
+          className="canvas-ctrl-btn"
+          onClick={() => setShowSettings(v => !v)}
+          title="Background settings"
+          style={{ fontSize: '15px' }}
+        >
+          {showSettings ? '✕' : '⚙'}
+        </button>
+
         {showSettings && (
           <div className="cs-panel">
             <div className="cs-title">// Background</div>
@@ -359,15 +395,6 @@ export default function ConstellationCanvas() {
             <div className="cs-hint">click anywhere to send a shockwave<br/>drag stars to fling them</div>
           </div>
         )}
-
-        <button
-          className="canvas-ctrl-btn"
-          onClick={() => setShowSettings(v => !v)}
-          title="Background settings"
-          style={{ fontSize: '15px' }}
-        >
-          {showSettings ? '✕' : '⚙'}
-        </button>
       </div>
     </>
   );
