@@ -30,7 +30,7 @@ export default function DiscordProfile({ data, loading, avatarUrl, avatarFallbac
 
   /* Avatar decoration URL */
   const decorUrl = user?.avatar_decoration_data
-    ? `https://cdn.discordapp.com/avatar-decoration-presets/${user.avatar_decoration_data.asset}.png?size=240&passthrough=true`
+    ? `https://cdn.discordapp.com/avatar-decoration-presets/${user.avatar_decoration_data.asset}.png?size=40&passthrough=true`
     : null;
 
   /* Clan badge URL */
