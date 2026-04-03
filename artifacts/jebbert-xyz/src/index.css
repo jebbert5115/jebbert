@@ -194,9 +194,7 @@ body::after {
 
 /* ── Cards / Panels ── */
 .card {
-  background: rgba(18, 18, 26, 0.55);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(18, 18, 26, 0.25);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 20px;
@@ -1482,12 +1480,10 @@ canvas.flow-field-canvas {
 
 /* ── Discord Profile Card ── */
 .discord-profile {
-  background: rgba(12, 12, 20, 0.55);
+  background: rgba(12, 12, 20, 0.25);
   border: 1px solid var(--border);
   border-radius: 12px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  box-shadow: 0 4px 32px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 32px rgba(0,0,0,0.2);
   overflow: visible;
 }
 
