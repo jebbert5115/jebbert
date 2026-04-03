@@ -11,7 +11,7 @@ interface Settings {
 
 const DEFAULTS: Settings = {
   starCount:   90,
-  connectDist: 300,
+  connectDist: 155,
   speed:       1.0,
   hue:         215,
   mouseRadius: 150,
@@ -59,6 +59,7 @@ export default function ConstellationCanvas() {
   const isPaintingRef   = useRef(false);
   const lastPaintRef    = useRef({ x: -9999, y: -9999 });
   const curStrokeRef    = useRef<number>(-1);
+  const pairOpRef       = useRef<Map<number, number>>(new Map());
   const settingsRef     = useRef<Settings>(DEFAULTS);
 
   const [settings, setSettings] = useState<Settings>(DEFAULTS);
@@ -167,28 +168,55 @@ export default function ConstellationCanvas() {
       const hue = s.hue;
       const cd  = s.connectDist;
 
-      // ── Draw: background star connections (BATCHED) ─────────
-      // Two-pass batch approach: one path per opacity tier — no per-stroke state changes
+      // ── Draw: background star connections (fade-in/out per pair) ──
+      // Each pair's displayed opacity lerps toward its distance-based target,
+      // so connections bloom in as stars approach and dissolve as they drift apart.
+      const FADE_RATE = 0.12;   // ~0.35s to reach target at 60fps
+      const EXT_CD    = cd * 1.35; // pairs fade out inside this buffer zone
+
       type Seg = [number, number, number, number];
       const segsLow:  Seg[] = [];
       const segsHigh: Seg[] = [];
+      const pairOp    = pairOpRef.current;
+      const visited   = new Set<number>();
 
       for (let i = 0; i < stars.length; i++) {
         const a = stars[i];
         for (let j = i + 1; j < stars.length; j++) {
-          const b = stars[j];
-          const d = Math.hypot(a.x - b.x, a.y - b.y);
-          if (d >= cd) continue;
+          const b  = stars[j];
+          const d  = Math.hypot(a.x - b.x, a.y - b.y);
+          const key = (i << 9) | j; // supports up to 512 stars
 
-          let op = (1 - d / cd) * 0.65;
+          const hasPrev = pairOp.has(key);
+          if (d >= EXT_CD && !hasPrev) continue; // too far, never connected
+
+          visited.add(key);
+
+          // Target opacity: distance-based, 0 when beyond connect dist
+          const target = d < cd ? (1 - d / cd) * 0.65 : 0;
+          const cur    = hasPrev ? pairOp.get(key)! : 0;
+          const next   = cur + (target - cur) * FADE_RATE;
+
+          if (next < 0.004) { pairOp.delete(key); continue; }
+          pairOp.set(key, next);
+
+          // Mouse proximity boost applied at render time only
           const aNear = mActive && Math.hypot(a.x - mx, a.y - my) < s.mouseRadius;
           const bNear = mActive && Math.hypot(b.x - mx, b.y - my) < s.mouseRadius;
-          if (aNear || bNear) op = Math.min(0.92, op * 2.6);
+          const renderOp = (aNear || bNear) ? Math.min(0.92, next * 2.6) : next;
 
-          if (op < 0.28) segsLow.push([a.x, a.y, b.x, b.y]);
-          else           segsHigh.push([a.x, a.y, b.x, b.y]);
+          if (renderOp < 0.28) segsLow.push([a.x, a.y, b.x, b.y]);
+          else                  segsHigh.push([a.x, a.y, b.x, b.y]);
         }
       }
+
+      // Fade out any stored pairs that drifted fully past EXT_CD this frame
+      pairOp.forEach((val, key) => {
+        if (visited.has(key)) return;
+        const next = val * (1 - FADE_RATE * 1.5);
+        if (next < 0.004) pairOp.delete(key);
+        else pairOp.set(key, next);
+      });
 
       // Low tier: dim base lines
       if (segsLow.length) {
@@ -201,14 +229,12 @@ export default function ConstellationCanvas() {
 
       // High tier: bright core + neon glow pass
       if (segsHigh.length) {
-        // Bright core
         ctx.beginPath();
         ctx.lineWidth = 1.5;
         ctx.strokeStyle = `hsla(${hue},96%,84%,0.72)`;
         for (const [x1,y1,x2,y2] of segsHigh) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
         ctx.stroke();
 
-        // Neon glow pass — one shadow flush for the whole batch
         ctx.save();
         ctx.shadowBlur  = 14;
         ctx.shadowColor = `hsl(${hue},100%,72%)`;
@@ -386,6 +412,7 @@ export default function ConstellationCanvas() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     starsRef.current = makeStars(canvas.width, canvas.height, settings.starCount, settings.speed);
+    pairOpRef.current.clear();
   }, [settings.starCount, settings.speed]);
 
   useEffect(() => {
