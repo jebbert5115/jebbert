@@ -1555,6 +1555,149 @@ canvas.flow-field-canvas {
   color: var(--accent);
 }
 
+/* ── Constellation settings panel ── */
+.constellation-controls {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 20;
+}
+
+.cs-panel {
+  width: 252px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.cs-title {
+  font-family: var(--font-display);
+  font-size: 7px;
+  color: var(--accent-3);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.cs-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.cs-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cs-label span {
+  color: var(--text);
+}
+
+.cs-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+
+.cs-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--accent-1);
+  cursor: pointer;
+  box-shadow: 0 0 7px rgba(139, 92, 246, 0.7);
+  transition: box-shadow 0.15s;
+}
+
+.cs-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 12px rgba(139, 92, 246, 1);
+}
+
+.cs-hue-track {
+  position: relative;
+}
+
+.cs-hue-bar {
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(to right,
+    hsl(0,70%,60%), hsl(40,70%,60%), hsl(80,70%,60%),
+    hsl(120,70%,60%), hsl(160,70%,60%), hsl(200,70%,60%),
+    hsl(240,70%,60%), hsl(280,70%,60%), hsl(320,70%,60%), hsl(360,70%,60%)
+  );
+  margin-bottom: 4px;
+  border-radius: 3px;
+}
+
+.cs-hue-slider {
+  background: transparent !important;
+}
+
+.cs-hue-slider::-webkit-slider-thumb {
+  background: white !important;
+  box-shadow: 0 0 5px rgba(0,0,0,0.7) !important;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.9);
+}
+
+.cs-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cs-toggle-btn {
+  flex: 1;
+  padding: 5px 0;
+  font-family: var(--font-accent);
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cs-toggle-btn.cs-active {
+  background: rgba(139, 92, 246, 0.22);
+  color: var(--accent-1);
+}
+
+.cs-hint {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  opacity: 0.6;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  text-align: center;
+}
+
 /* ── Social strip ── */
 .social-strip {
   display: flex;

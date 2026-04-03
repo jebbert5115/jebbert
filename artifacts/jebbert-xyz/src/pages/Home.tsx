@@ -1,19 +1,18 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useLanyard } from '../hooks/useLanyard';
 import { SpotifyCard } from '../components/SpotifyCard';
 import { GameCard } from '../components/GameCard';
 import { Link } from 'wouter';
-import FlowFieldCanvas from '../components/FlowFieldCanvas';
+import ConstellationCanvas from '../components/ConstellationCanvas';
 import DiscordProfile from '../components/DiscordProfile';
 
 export default function Home() {
   const { data, loading, avatarUrl, avatarFallback, customStatus } = useLanyard();
-  const [hideCards, setHideCards]   = useState(false);
-  const resetColorsRef              = useRef<(() => void) | null>(null);
+  const [hideCards, setHideCards] = useState(false);
 
   return (
     <>
-      <FlowFieldCanvas resetRef={resetColorsRef} />
+      <ConstellationCanvas />
 
       {/* ── Canvas control buttons ── */}
       <div className="canvas-controls">
@@ -35,17 +34,6 @@ export default function Home() {
               <line x1="13" y1="1" x2="1"  y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
             </svg>
           )}
-        </button>
-
-        <button
-          className="canvas-ctrl-btn"
-          title="Reset particle colors"
-          onClick={() => resetColorsRef.current?.()}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="1 4 1 10 7 10"/>
-            <path d="M3.51 15a9 9 0 1 0 .49-3.63"/>
-          </svg>
         </button>
       </div>
 
