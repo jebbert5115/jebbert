@@ -130,40 +130,7 @@ body::after {
 .home-stack {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  background: rgba(18, 18, 26, 0.25);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: visible;
-}
-
-/* Subtle dividers between sections */
-.home-stack > * + * {
-  border-top: 1px solid var(--border);
-}
-
-/* Mid-row and inner sections: padding since they're no longer wrapped in .card */
-.home-stack > .home-mid-row {
-  padding: 20px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  align-items: start;
-}
-
-/* Strip discord-profile of its own card shell */
-.home-stack > .discord-profile {
-  background: none;
-  border: none;
-  box-shadow: none;
-}
-
-/* Strip inner .card elements of their own card shell */
-.home-stack .card {
-  background: none;
-  border: none;
-  box-shadow: none;
-  border-radius: 0;
+  gap: 24px;
 }
 
 /* Hero card: horizontal profile banner */
