@@ -43,7 +43,7 @@ const bots: Bot[] = [
     name: 'LyriX',
     logo: `${BASE}bots/lyrix.png`,
     lang: 'Python',
-    about: 'Detects your Spotify activity to fetch song lyrics for you, and deliver custom lyric searches.',
+    about: 'Detects your Spotify activity to fetch song lyrics, as well as deliver custom searches.',
     invite: 'https://discord.com/oauth2/authorize?client_id=1488795086824280284',
   },
 ];
