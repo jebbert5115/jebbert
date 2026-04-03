@@ -37,6 +37,25 @@ function flowAngle(px: number, py: number, t: number): number {
   );
 }
 
+/* ─── HSL → RGB ──────────────────────────────────────────────── */
+function hslToRgb(h: number, s: number, l: number): [number, number, number] {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if      (h < 60)  { r = c; g = x; b = 0; }
+  else if (h < 120) { r = x; g = c; b = 0; }
+  else if (h < 180) { r = 0; g = c; b = x; }
+  else if (h < 240) { r = 0; g = x; b = c; }
+  else if (h < 300) { r = x; g = 0; b = c; }
+  else              { r = c; g = 0; b = x; }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+
+function randomVividColor(): [number, number, number] {
+  return hslToRgb(Math.random() * 360, 0.9, 0.55);
+}
+
 /* ─── Constants ─────────────────────────────────────────────── */
 const TWO_PI      = Math.PI * 2;
 const FIELD_SCALE = 0.0025;
@@ -55,11 +74,11 @@ const PARTICLE_MIN = 150;
 const PARTICLE_MAX = 900;
 
 /* Perf thresholds — reduce count when avg frame time stays above SLOW */
-const FT_SLOW     = 22;   // ms  → < ~45 fps
-const FT_FAST     = 16;   // ms  → ≥ 60 fps (allow restore)
-const SLOW_FRAMES = 60;   // consecutive slow frames before trimming
-const TRIM_PCT    = 0.15; // remove 15% of particles per trim step
-const GROW_PCT    = 0.10; // re-add  10% per grow step (up to target)
+const FT_SLOW     = 22;
+const FT_FAST     = 16;
+const SLOW_FRAMES = 60;
+const TRIM_PCT    = 0.15;
+const GROW_PCT    = 0.10;
 
 const PALETTE: [number, number, number][] = [
   [124,  58, 237],
@@ -94,7 +113,8 @@ function targetCount(): number {
 
 /* ─── Component ─────────────────────────────────────────────── */
 export default function FlowFieldCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef     = useRef<HTMLCanvasElement>(null);
+  const clickColorRef = useRef<[number, number, number] | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -109,9 +129,9 @@ export default function FlowFieldCanvas() {
     let last = performance.now();
 
     /* ── Performance tracking ─────────────────────────────── */
-    let avgFt    = 16.67;   // EMA of frame times in ms
-    let slowCnt  = 0;        // consecutive slow frames
-    let fastCnt  = 0;        // consecutive fast frames
+    let avgFt    = 16.67;
+    let slowCnt  = 0;
+    let fastCnt  = 0;
     let target   = targetCount();
 
     /* ── Resize ───────────────────────────────────────────── */
@@ -134,15 +154,18 @@ export default function FlowFieldCanvas() {
         particles.splice(target);
       }
 
-      /* Immediate opaque fill so dot-grid doesn't flash under canvas */
       ctx.fillStyle = BG + '1)';
       ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     }
 
-    /* ── Window events (canvas is pointer-events: none) ───── */
+    /* ── Window events ────────────────────────────────────── */
     const onMove  = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true; };
     const onLeave = ()               => { mouse.on = false; };
-    const onClick = (e: MouseEvent) => { burst = { x: e.clientX, y: e.clientY, at: performance.now() }; };
+    const onClick = (e: MouseEvent) => {
+      /* Pick a fresh vivid color for this click */
+      clickColorRef.current = randomVividColor();
+      burst = { x: e.clientX, y: e.clientY, at: performance.now() };
+    };
 
     resize();
     window.addEventListener('resize',     resize);
@@ -155,7 +178,6 @@ export default function FlowFieldCanvas() {
       const dt = Math.min(now - last, 50);
       last = now;
 
-      /* Adaptive performance: exponential moving average of frame time */
       avgFt = avgFt * 0.92 + dt * 0.08;
 
       if (avgFt > FT_SLOW) {
@@ -169,7 +191,6 @@ export default function FlowFieldCanvas() {
       } else if (avgFt < FT_FAST) {
         fastCnt++;
         slowCnt = 0;
-        /* Gradually restore toward target when running comfortably fast */
         if (fastCnt >= SLOW_FRAMES && particles.length < target) {
           const add = Math.min(
             Math.ceil(target * GROW_PCT),
@@ -189,7 +210,6 @@ export default function FlowFieldCanvas() {
 
       const W = window.innerWidth, H = window.innerHeight;
 
-      /* Trail fade */
       ctx.fillStyle = BG + TRAIL_ALPHA + ')';
       ctx.fillRect(0, 0, W, H);
 
@@ -197,12 +217,12 @@ export default function FlowFieldCanvas() {
       const burstLive = burstAge < BURST_MS;
 
       for (const p of particles) {
-        /* Flow field: two octaves of Perlin noise */
+        /* Flow field */
         const ang = flowAngle(p.x, p.y, t);
         p.vx += Math.cos(ang) * FORCE;
         p.vy += Math.sin(ang) * FORCE;
 
-        /* Mouse vortex: tangential rotation around cursor */
+        /* Mouse vortex */
         if (mouse.on) {
           const dx = p.x - mouse.x, dy = p.y - mouse.y;
           const d2 = dx * dx + dy * dy;
@@ -214,25 +234,29 @@ export default function FlowFieldCanvas() {
           }
         }
 
-        /* Click burst: reverse nearby current (flow + velocity opposition) */
+        /* Click burst: reverse direction + recolor nearby particles */
         if (burstLive) {
           const dx = p.x - burst!.x, dy = p.y - burst!.y;
           const d2 = dx * dx + dy * dy;
           if (d2 < BURST_R * BURST_R) {
-            const d  = Math.sqrt(Math.max(d2, 0.1));
+            const d         = Math.sqrt(Math.max(d2, 0.1));
             const proximity = 1 - d / BURST_R;
             const decay     = Math.max(0, 1 - burstAge / BURST_MS);
             const s         = proximity * decay;
 
-            /* 1. Oppose current velocity (reversal drag) */
+            /* Oppose current velocity */
             p.vx -= p.vx * s * 0.45;
             p.vy -= p.vy * s * 0.45;
 
-            /* 2. Apply force opposite to the natural flow direction at this point,
-                  so the particle fights the current rather than riding it */
+            /* Anti-flow force */
             const fa = flowAngle(p.x, p.y, t);
             p.vx -= Math.cos(fa) * s * FORCE * 6;
             p.vy -= Math.sin(fa) * s * FORCE * 6;
+
+            /* Recolor particle to the click color */
+            if (clickColorRef.current) {
+              p.col = clickColorRef.current;
+            }
           }
         }
 
@@ -256,7 +280,7 @@ export default function FlowFieldCanvas() {
           continue;
         }
 
-        /* Alpha envelope: fade in/out at birth and death */
+        /* Alpha envelope */
         const age = p.life / p.maxLife;
         const env = age < 0.08 ? age / 0.08 : age > 0.9 ? (1 - age) / 0.1 : 1;
 
@@ -276,6 +300,8 @@ export default function FlowFieldCanvas() {
       window.removeEventListener('mousemove',  onMove);
       window.removeEventListener('mouseleave', onLeave);
       window.removeEventListener('click',      onClick);
+      /* clickColorRef.current resets to null on next mount automatically */
+      clickColorRef.current = null;
     };
   }, []);
 
