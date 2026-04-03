@@ -126,6 +126,53 @@ body::after {
   padding: 32px 24px 64px;
 }
 
+/* ── Home page stack layout ── */
+.home-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Hero card: horizontal profile banner */
+.hero-card {
+  padding: 20px 24px;
+}
+
+.hero-profile {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.hero-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.hero-status {
+  max-width: none;
+  text-align: left;
+}
+
+.hero-social {
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+/* Mid row: Now Playing + About Me side by side */
+.home-mid-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Legacy classes (kept for stability, no longer used in home layout) */
 .home-layout {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -408,8 +455,9 @@ body::after {
   color: var(--accent-2);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  width: 70px;
+  width: 140px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .currently-value {
@@ -1109,6 +1157,10 @@ canvas.flow-field-canvas {
 
   .profile-card-full {
     flex: none;
+  }
+
+  .home-mid-row {
+    grid-template-columns: 1fr;
   }
 
   .games-grid {
