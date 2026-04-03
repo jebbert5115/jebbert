@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLanyard } from '../hooks/useLanyard';
 import { SpotifyCard } from '../components/SpotifyCard';
 import { Link } from 'wouter';
+import FlowFieldCanvas from '../components/FlowFieldCanvas';
 
 export default function Home() {
   const { data, loading, avatarUrl, avatarFallback, customStatus } = useLanyard();
@@ -14,6 +15,7 @@ export default function Home() {
 
   return (
     <>
+      <FlowFieldCanvas />
       <div className="home-layout">
         {/* ── Left Sidebar ── */}
         <aside className="home-sidebar">
