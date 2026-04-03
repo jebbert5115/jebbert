@@ -85,12 +85,10 @@ export default function Home() {
           <div className="card about-card">
             <div className="card-title">About Me</div>
             <p style={{ fontSize: '13px', lineHeight: '1.8', color: 'var(--text-muted)' }}>
-              hey, i'm <span style={{ color: 'var(--accent-2)' }}>jebbert</span>. i make things on the internet and break them shortly after.
-              i've been on discord way too long, drink too much water (you should too), and spend way too much
-              time thinking about loading screens.
+              I actually have no idea what to put in these things.
             </p>
             <p style={{ fontSize: '13px', lineHeight: '1.8', color: 'var(--text-muted)', marginTop: '12px' }}>
-              currently obsessed with: <span style={{ color: 'var(--accent-3)' }}>retro web aesthetics, weird javascript tricks, and the concept of the perfect loading animation</span>
+              yeah.
             </p>
           </div>
 
@@ -99,10 +97,10 @@ export default function Home() {
             <div className="card-title">Board</div>
             <div className="currently-list">
               {[
-                { emoji: '🎮', label: 'Favorite Game', value: 'Minecraft' },
-                { emoji: '📺', label: 'Currently Watching', value: 'Severance' },
-                { emoji: '📖', label: 'Currently Reading', value: 'A blog about CSS from 2009' },
-                { emoji: '🎵', label: 'Fav Song', value: 'Always – blink-182' },
+                { emoji: '🎮', label: 'Favorite Game', value: 'ARC Raiders' },
+                { emoji: '📺', label: 'Currently Watching', value: 'The Rookie' },
+                { emoji: '📖', label: 'Currently Reading', value: 'The Ballad of Songbirds and Snakes' },
+                { emoji: '🎵', label: 'Fav Song', value: "Don't Drag Me Down – Social Distortion" },
               ].map(({ emoji, label, value }) => (
                 <div key={label} className="currently-item">
                   <span className="currently-emoji">{emoji}</span>
