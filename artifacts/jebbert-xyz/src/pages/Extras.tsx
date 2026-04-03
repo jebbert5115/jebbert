@@ -403,59 +403,6 @@ function RunawayButton() {
   );
 }
 
-/* ════════════════════════════════════════════
-   7. SOUNDBOARD
-════════════════════════════════════════════ */
-interface SoundDef {
-  label: string;
-  freq: number;
-  type: OscillatorType;
-  duration: number;
-  style?: React.CSSProperties;
-}
-
-const SOUNDS: SoundDef[] = [
-  { label: 'THE BELL', freq: 880, type: 'sine', duration: 0.8 },
-  { label: 'VINE BOOM', freq: 60, type: 'sawtooth', duration: 0.5 },
-  { label: 'BRUH', freq: 120, type: 'square', duration: 0.4 },
-  { label: 'WINDOWS ERROR', freq: 440, type: 'square', duration: 0.3 },
-  { label: 'ACHIEVEMENT', freq: 660, type: 'triangle', duration: 0.6 },
-  { label: 'LASER', freq: 1200, type: 'sawtooth', duration: 0.2 },
-];
-
-let audioCtx: AudioContext | null = null;
-
-function playTone(freq: number, type: OscillatorType, duration: number) {
-  if (!audioCtx) audioCtx = new AudioContext();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.type = type;
-  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-  gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration);
-}
-
-function Soundboard() {
-  return (
-    <ExtraCard title="Sound Board">
-      <div className="soundboard-grid">
-        {SOUNDS.map(s => (
-          <button
-            key={s.label}
-            className="sound-btn"
-            onClick={() => playTone(s.freq, s.type, s.duration)}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-    </ExtraCard>
-  );
-}
 
 /* ════════════════════════════════════════════
    PAGE
@@ -477,9 +424,6 @@ export default function Extras() {
         <HackerTerminal />
         <VibeChecker />
         <RunawayButton />
-        <div style={{ gridColumn: '1 / -1' }}>
-          <Soundboard />
-        </div>
       </div>
     </div>
   );

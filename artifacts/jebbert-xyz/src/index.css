@@ -549,7 +549,21 @@ body::after {
 
 .card:fullscreen .memory-grid,
 .card:-webkit-full-screen .memory-grid {
-  max-width: min(70vmin, 540px);
+  width: min(70vmin, 540px);
+  max-width: none;
+  gap: 16px;
+}
+
+.card:fullscreen .memory-card-front,
+.card:fullscreen .memory-card-back,
+.card:-webkit-full-screen .memory-card-front,
+.card:-webkit-full-screen .memory-card-back {
+  font-size: 40px;
+}
+
+.card:fullscreen .memory-card-front,
+.card:-webkit-full-screen .memory-card-front {
+  font-size: 16px;
 }
 
 .card:fullscreen .game-controls,
@@ -559,12 +573,6 @@ body::after {
   flex-shrink: 0;
 }
 
-.card:fullscreen .soundboard-grid,
-.card:-webkit-full-screen .soundboard-grid {
-  width: 100%;
-  max-width: 700px;
-  grid-template-columns: repeat(3, 1fr);
-}
 
 .card:fullscreen .vibe-options,
 .card:-webkit-full-screen .vibe-options {
@@ -696,7 +704,7 @@ canvas {
 .extras-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: repeat(4, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   gap: 24px;
   height: calc(100vh - 200px);
 }
@@ -741,39 +749,6 @@ canvas {
   cursor: text;
 }
 
-/* ── Soundboard ── */
-.soundboard-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.sound-btn {
-  font-family: var(--font-accent);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 10px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  color: var(--text);
-  background: var(--surface);
-  cursor: crosshair;
-  transition: all 0.15s;
-  text-align: center;
-}
-
-.sound-btn:hover {
-  border-color: var(--accent-3);
-  color: var(--accent-3);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
-  transform: scale(1.05);
-}
-
-.sound-btn:active {
-  transform: scale(0.97);
-}
 
 /* ── Vibe checker ── */
 .vibe-question {
@@ -1144,10 +1119,6 @@ canvas {
   .memory-grid {
     grid-template-columns: repeat(4, 1fr);
     max-width: 100%;
-  }
-
-  .soundboard-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .social-links {
