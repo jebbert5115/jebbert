@@ -1551,6 +1551,8 @@ canvas.flow-field-canvas {
   left: 44px;
   width: 120px;
   height: 120px;
+  max-width: none;
+  max-height: none;
   transform: translate(-50%, -50%);
   pointer-events: none;
   image-rendering: auto;
