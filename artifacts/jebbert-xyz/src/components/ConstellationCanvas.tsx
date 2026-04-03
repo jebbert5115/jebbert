@@ -26,7 +26,6 @@ interface Star {
 }
 
 const PAINT_LIFE = 9000; // fixed lifetime for all paint stars (ms)
-const PAINT_FADE = 1800; // last N ms of lifetime used for fade-out
 
 interface PaintStar {
   x: number; y: number;
@@ -280,8 +279,7 @@ export default function ConstellationCanvas() {
           const ps2 = paint[i + 1];
           if (ps.strokeId !== ps2.strokeId) continue;
           // Both stars share the same strokeBorn → fade in perfect unison
-          const age = now - ps.strokeBorn;
-          const op  = age < PAINT_LIFE - PAINT_FADE ? 1 : Math.max(0, 1 - (age - (PAINT_LIFE - PAINT_FADE)) / PAINT_FADE);
+          const op = Math.max(0, 1 - (now - ps.strokeBorn) / PAINT_LIFE);
           if (op > 0.01) seqSegs.push([ps.x, ps.y, ps2.x, ps2.y, op]);
         }
 
@@ -308,8 +306,7 @@ export default function ConstellationCanvas() {
         // Paint-to-background-star connections (batched)
         const pBgSegs: Seg[] = [];
         for (const ps of paint) {
-          const _age = now - ps.strokeBorn;
-          const pOp  = _age < PAINT_LIFE - PAINT_FADE ? 1 : Math.max(0, 1 - (_age - (PAINT_LIFE - PAINT_FADE)) / PAINT_FADE);
+          const pOp = Math.max(0, 1 - (now - ps.strokeBorn) / PAINT_LIFE);
           if (pOp < 0.05) continue;
           for (const st of stars) {
             const d = Math.hypot(ps.x - st.x, ps.y - st.y);
@@ -366,8 +363,7 @@ export default function ConstellationCanvas() {
         ctx.shadowBlur  = 20;
         ctx.shadowColor = `hsl(${hue},100%,88%)`;
         for (const ps of paint) {
-          const _a  = now - ps.strokeBorn;
-          const pOp = _a < PAINT_LIFE - PAINT_FADE ? 1 : Math.max(0, 1 - (_a - (PAINT_LIFE - PAINT_FADE)) / PAINT_FADE);
+          const pOp  = Math.max(0, 1 - (now - ps.strokeBorn) / PAINT_LIFE);
           if (pOp < 0.02) continue;
           const starR = ps.r * (0.7 + 0.3 * pOp);
           const glowR = starR * 9 * pOp;
@@ -440,7 +436,7 @@ export default function ConstellationCanvas() {
       if (isPaintingRef.current) {
         const lp   = lastPaintRef.current;
         const dist = Math.hypot(e.clientX - lp.x, e.clientY - lp.y);
-        if (dist >= 10) {
+        if (dist >= 10 && paintStarsRef.current.length < 250) {
           const dirX = (e.clientX - lp.x) / dist;
           const dirY = (e.clientY - lp.y) / dist;
           paintStarsRef.current.push({
@@ -475,15 +471,17 @@ export default function ConstellationCanvas() {
         curStrokeRef.current  = ++_strokeId;
         strokeBornRef.current = performance.now();
         lastPaintRef.current  = { x: e.clientX, y: e.clientY };
-        paintStarsRef.current.push({
-          x: e.clientX, y: e.clientY,
-          vx: (Math.random() - 0.5) * 0.5,
-          vy: (Math.random() - 0.5) * 0.5,
-          r:        2.0 + Math.random() * 2.2,
-          born:       performance.now(),
-          strokeBorn: strokeBornRef.current,
-          strokeId:   curStrokeRef.current,
-        });
+        if (paintStarsRef.current.length < 250) {
+          paintStarsRef.current.push({
+            x: e.clientX, y: e.clientY,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            r:        2.0 + Math.random() * 2.2,
+            born:       performance.now(),
+            strokeBorn: strokeBornRef.current,
+            strokeId:   curStrokeRef.current,
+          });
+        }
       }
     };
 
