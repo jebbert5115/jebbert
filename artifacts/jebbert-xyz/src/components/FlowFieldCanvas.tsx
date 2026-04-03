@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-/* ─── Perlin noise ──────────────────────────────────────────── */
+/* ─── Perlin noise (2D gradient) ─────────────────────────────── */
 const perm = (() => {
   const a = Array.from({ length: 256 }, (_, i) => i);
   for (let i = 255; i > 0; i--) {
@@ -23,31 +23,50 @@ function noise(x: number, y: number): number {
   const u = fade(xf), v = fade(yf);
   const a = perm[X] + Y, b = perm[X + 1] + Y;
   return lerp(
-    lerp(grad(perm[a], xf, yf),     grad(perm[b], xf - 1, yf), u),
-    lerp(grad(perm[a + 1], xf, yf - 1), grad(perm[b + 1], xf - 1, yf - 1), u),
+    lerp(grad(perm[a],     xf,     yf),     grad(perm[b],     xf - 1, yf), u),
+    lerp(grad(perm[a + 1], xf,     yf - 1), grad(perm[b + 1], xf - 1, yf - 1), u),
     v,
   );
 }
 
+/* Helper: compute the flow angle at a given world position + time */
+function flowAngle(px: number, py: number, t: number): number {
+  return (
+    noise(px * FIELD_SCALE + t,       py * FIELD_SCALE) * TWO_PI * 3 +
+    noise(px * FIELD_SCALE * 2 - t * 0.6, py * FIELD_SCALE * 2) * Math.PI
+  );
+}
+
 /* ─── Constants ─────────────────────────────────────────────── */
-const TWO_PI       = Math.PI * 2;
-const FIELD_SCALE  = 0.0025;
-const TIME_SCALE   = 0.00022;
-const FORCE        = 0.13;
-const DAMPING      = 0.91;
-const MAX_SPEED    = 2.2;
-const VORTEX_R     = 130;
-const BURST_R      = 160;
-const BURST_MS     = 700;
-const TRAIL_ALPHA  = 0.11;
-const BG           = 'rgba(10,10,15,';
+const TWO_PI      = Math.PI * 2;
+const FIELD_SCALE = 0.0025;
+const TIME_SCALE  = 0.00022;
+const FORCE       = 0.13;
+const DAMPING     = 0.91;
+const MAX_SPEED   = 2.2;
+const VORTEX_R    = 130;
+const BURST_R     = 160;
+const BURST_MS    = 700;
+const TRAIL_ALPHA = 0.11;
+const BG          = 'rgba(10,10,15,';
+
+/* Target: 1 particle per ~1800px², clamped to [MIN, MAX] */
+const PARTICLE_MIN = 150;
+const PARTICLE_MAX = 900;
+
+/* Perf thresholds — reduce count when avg frame time stays above SLOW */
+const FT_SLOW     = 22;   // ms  → < ~45 fps
+const FT_FAST     = 16;   // ms  → ≥ 60 fps (allow restore)
+const SLOW_FRAMES = 60;   // consecutive slow frames before trimming
+const TRIM_PCT    = 0.15; // remove 15% of particles per trim step
+const GROW_PCT    = 0.10; // re-add  10% per grow step (up to target)
 
 const PALETTE: [number, number, number][] = [
-  [124,  58, 237],  // accent-1 purple
-  [  6, 182, 212],  // accent-2 cyan
-  [245, 158,  11],  // accent-3 amber
-  [ 90,  40, 180],  // deeper purple
-  [  0, 140, 180],  // deep cyan
+  [124,  58, 237],
+  [  6, 182, 212],
+  [245, 158,  11],
+  [ 90,  40, 180],
+  [  0, 140, 180],
 ];
 
 /* ─── Particle ───────────────────────────────────────────────── */
@@ -60,13 +79,17 @@ interface P {
 
 function spawn(w: number, h: number): P {
   return {
-    x: Math.random() * w,
-    y: Math.random() * h,
+    x: Math.random() * w, y: Math.random() * h,
     vx: 0, vy: 0,
     col: PALETTE[(Math.random() * PALETTE.length) | 0],
     life: 0,
-    maxLife: 250 + (Math.random() * 350) | 0,
+    maxLife: 250 + ((Math.random() * 350) | 0),
   };
+}
+
+function targetCount(): number {
+  const area = window.innerWidth * window.innerHeight;
+  return Math.min(PARTICLE_MAX, Math.max(PARTICLE_MIN, (area / 1800) | 0));
 }
 
 /* ─── Component ─────────────────────────────────────────────── */
@@ -78,55 +101,95 @@ export default function FlowFieldCanvas() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d', { alpha: false })!;
 
-    const mouse  = { x: -9999, y: -9999, on: false };
+    const mouse = { x: -9999, y: -9999, on: false };
     let burst: { x: number; y: number; at: number } | null = null;
     let raf: number;
     let t = 0;
     let particles: P[] = [];
     let last = performance.now();
 
-    /* Resize — keeps canvas pixel-perfect without DPR blur */
+    /* ── Performance tracking ─────────────────────────────── */
+    let avgFt    = 16.67;   // EMA of frame times in ms
+    let slowCnt  = 0;        // consecutive slow frames
+    let fastCnt  = 0;        // consecutive fast frames
+    let target   = targetCount();
+
+    /* ── Resize ───────────────────────────────────────────── */
     function resize() {
       const dpr = Math.min(window.devicePixelRatio ?? 1, 2);
       canvas.width  = window.innerWidth  * dpr;
       canvas.height = window.innerHeight * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      /* Repopulate — target 1 particle per ~1800px², capped */
-      const n = Math.min(900, Math.max(250,
-        (window.innerWidth * window.innerHeight / 1800) | 0,
-      ));
-      particles = Array.from({ length: n }, () =>
-        spawn(window.innerWidth, window.innerHeight),
-      );
-      /* Paint solid bg immediately so dot-grid doesn't flash */
+      target = targetCount();
+      const w = window.innerWidth, h = window.innerHeight;
+
+      if (particles.length < target) {
+        const extra = Array.from(
+          { length: target - particles.length },
+          () => spawn(w, h),
+        );
+        particles.push(...extra);
+      } else if (particles.length > target) {
+        particles.splice(target);
+      }
+
+      /* Immediate opaque fill so dot-grid doesn't flash under canvas */
       ctx.fillStyle = BG + '1)';
       ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
     }
 
+    /* ── Window events (canvas is pointer-events: none) ───── */
+    const onMove  = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true; };
+    const onLeave = ()               => { mouse.on = false; };
+    const onClick = (e: MouseEvent) => { burst = { x: e.clientX, y: e.clientY, at: performance.now() }; };
+
     resize();
+    window.addEventListener('resize',     resize);
+    window.addEventListener('mousemove',  onMove);
+    window.addEventListener('mouseleave', onLeave);
+    window.addEventListener('click',      onClick);
 
-    /* Event listeners on window (canvas is pointer-events:none) */
-    function onMove(e: MouseEvent) { mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true; }
-    function onLeave()              { mouse.on = false; }
-    function onClick(e: MouseEvent) {
-      burst = { x: e.clientX, y: e.clientY, at: performance.now() };
-    }
-
-    window.addEventListener('resize',      resize);
-    window.addEventListener('mousemove',   onMove);
-    window.addEventListener('mouseleave',  onLeave);
-    window.addEventListener('click',       onClick);
-
-    /* ─── Main loop ─────────────────────────────────────────── */
+    /* ── Draw loop ────────────────────────────────────────── */
     function draw(now: number) {
-      const dt = Math.min(now - last, 32);
+      const dt = Math.min(now - last, 50);
       last = now;
+
+      /* Adaptive performance: exponential moving average of frame time */
+      avgFt = avgFt * 0.92 + dt * 0.08;
+
+      if (avgFt > FT_SLOW) {
+        slowCnt++;
+        fastCnt = 0;
+        if (slowCnt >= SLOW_FRAMES && particles.length > PARTICLE_MIN) {
+          const remove = Math.max(1, Math.ceil(particles.length * TRIM_PCT));
+          particles.splice(particles.length - remove, remove);
+          slowCnt = 0;
+        }
+      } else if (avgFt < FT_FAST) {
+        fastCnt++;
+        slowCnt = 0;
+        /* Gradually restore toward target when running comfortably fast */
+        if (fastCnt >= SLOW_FRAMES && particles.length < target) {
+          const add = Math.min(
+            Math.ceil(target * GROW_PCT),
+            target - particles.length,
+          );
+          for (let i = 0; i < add; i++) {
+            particles.push(spawn(window.innerWidth, window.innerHeight));
+          }
+          fastCnt = 0;
+        }
+      } else {
+        slowCnt = 0;
+        fastCnt = 0;
+      }
+
       t += dt * TIME_SCALE;
 
       const W = window.innerWidth, H = window.innerHeight;
 
-      /* Trail fade — gives motion-blur feel */
+      /* Trail fade */
       ctx.fillStyle = BG + TRAIL_ALPHA + ')';
       ctx.fillRect(0, 0, W, H);
 
@@ -134,19 +197,16 @@ export default function FlowFieldCanvas() {
       const burstLive = burstAge < BURST_MS;
 
       for (const p of particles) {
-        /* Flow field angle from 2 noise octaves */
-        const ang =
-          noise(p.x * FIELD_SCALE + t, p.y * FIELD_SCALE) * TWO_PI * 3 +
-          noise(p.x * FIELD_SCALE * 2 - t * 0.6, p.y * FIELD_SCALE * 2) * Math.PI;
-
+        /* Flow field: two octaves of Perlin noise */
+        const ang = flowAngle(p.x, p.y, t);
         p.vx += Math.cos(ang) * FORCE;
         p.vy += Math.sin(ang) * FORCE;
 
-        /* Mouse vortex — tangential rotation around cursor */
+        /* Mouse vortex: tangential rotation around cursor */
         if (mouse.on) {
           const dx = p.x - mouse.x, dy = p.y - mouse.y;
           const d2 = dx * dx + dy * dy;
-          if (d2 < VORTEX_R * VORTEX_R && d2 > 1) {
+          if (d2 < VORTEX_R * VORTEX_R && d2 > 0.1) {
             const d = Math.sqrt(d2);
             const s = (1 - d / VORTEX_R) * 2.8;
             p.vx += (-dy / d) * s;
@@ -154,15 +214,25 @@ export default function FlowFieldCanvas() {
           }
         }
 
-        /* Click burst — outward radial push */
+        /* Click burst: reverse nearby current (flow + velocity opposition) */
         if (burstLive) {
           const dx = p.x - burst!.x, dy = p.y - burst!.y;
           const d2 = dx * dx + dy * dy;
-          if (d2 < BURST_R * BURST_R && d2 > 1) {
-            const d = Math.sqrt(d2);
-            const s = (1 - d / BURST_R) * (1 - burstAge / BURST_MS) * 5;
-            p.vx += (dx / d) * s;
-            p.vy += (dy / d) * s;
+          if (d2 < BURST_R * BURST_R) {
+            const d  = Math.sqrt(Math.max(d2, 0.1));
+            const proximity = 1 - d / BURST_R;
+            const decay     = Math.max(0, 1 - burstAge / BURST_MS);
+            const s         = proximity * decay;
+
+            /* 1. Oppose current velocity (reversal drag) */
+            p.vx -= p.vx * s * 0.45;
+            p.vy -= p.vy * s * 0.45;
+
+            /* 2. Apply force opposite to the natural flow direction at this point,
+                  so the particle fights the current rather than riding it */
+            const fa = flowAngle(p.x, p.y, t);
+            p.vx -= Math.cos(fa) * s * FORCE * 6;
+            p.vy -= Math.sin(fa) * s * FORCE * 6;
           }
         }
 
@@ -175,7 +245,7 @@ export default function FlowFieldCanvas() {
         p.y += p.vy;
         p.life++;
 
-        /* Respawn when dead or out of bounds */
+        /* Respawn when out of bounds or lifetime exhausted */
         if (
           p.life >= p.maxLife ||
           p.x < -30 || p.x > W + 30 || p.y < -30 || p.y > H + 30
@@ -186,13 +256,9 @@ export default function FlowFieldCanvas() {
           continue;
         }
 
-        /* Alpha envelope — fade in/out at birth and death */
+        /* Alpha envelope: fade in/out at birth and death */
         const age = p.life / p.maxLife;
-        const env = age < 0.08
-          ? age / 0.08
-          : age > 0.9
-          ? (1 - age) / 0.1
-          : 1;
+        const env = age < 0.08 ? age / 0.08 : age > 0.9 ? (1 - age) / 0.1 : 1;
 
         const [r, g, b] = p.col;
         ctx.fillStyle = `rgba(${r},${g},${b},${(env * 0.55).toFixed(2)})`;
