@@ -15,7 +15,7 @@ const DEFAULTS: Settings = {
   speed:       1.0,
   hue:         215,
   mouseRadius: 150,
-  attract:     false,
+  attract:     true,
 };
 
 interface Star {
@@ -25,13 +25,15 @@ interface Star {
   phase: number;
 }
 
+const PAINT_LIFE = 9000; // fixed lifetime for all paint stars (ms)
+
 interface PaintStar {
   x: number; y: number;
   vx: number; vy: number;
   r: number;
-  born: number;
-  life: number;
-  strokeId: number; // which paint stroke this belongs to
+  born:       number; // individual birth time (for physics/cleanup)
+  strokeBorn: number; // when this stroke started (all stars in stroke share this)
+  strokeId:   number;
 }
 
 let _strokeId = 0;
@@ -59,6 +61,7 @@ export default function ConstellationCanvas() {
   const isPaintingRef   = useRef(false);
   const lastPaintRef    = useRef({ x: -9999, y: -9999 });
   const curStrokeRef    = useRef<number>(-1);
+  const strokeBornRef   = useRef<number>(-1);
   const pairOpRef       = useRef<Map<number, number>>(new Map());
   const settingsRef     = useRef<Settings>(DEFAULTS);
 
@@ -153,7 +156,8 @@ export default function ConstellationCanvas() {
       }
 
       // ── Physics: paint stars ────────────────────────────────
-      paintStarsRef.current = paintStarsRef.current.filter(ps => now - ps.born < ps.life);
+      // Remove stars whose entire stroke has lived past PAINT_LIFE
+      paintStarsRef.current = paintStarsRef.current.filter(ps => now - ps.strokeBorn < PAINT_LIFE);
       for (const ps of paintStarsRef.current) {
         ps.vx += (Math.random() - 0.5) * 0.006;
         ps.vy += (Math.random() - 0.5) * 0.006;
@@ -274,9 +278,8 @@ export default function ConstellationCanvas() {
           const ps  = paint[i];
           const ps2 = paint[i + 1];
           if (ps.strokeId !== ps2.strokeId) continue;
-          const op1 = Math.max(0, 1 - (now - ps.born)  / ps.life);
-          const op2 = Math.max(0, 1 - (now - ps2.born) / ps2.life);
-          const op  = Math.min(op1, op2);
+          // Both stars share the same strokeBorn → fade in perfect unison
+          const op = Math.max(0, 1 - (now - ps.strokeBorn) / PAINT_LIFE);
           if (op > 0.01) seqSegs.push([ps.x, ps.y, ps2.x, ps2.y, op]);
         }
 
@@ -303,7 +306,7 @@ export default function ConstellationCanvas() {
         // Paint-to-background-star connections (batched)
         const pBgSegs: Seg[] = [];
         for (const ps of paint) {
-          const pOp = Math.max(0, 1 - (now - ps.born) / ps.life);
+          const pOp = Math.max(0, 1 - (now - ps.strokeBorn) / PAINT_LIFE);
           if (pOp < 0.05) continue;
           for (const st of stars) {
             const d = Math.hypot(ps.x - st.x, ps.y - st.y);
@@ -360,7 +363,7 @@ export default function ConstellationCanvas() {
         ctx.shadowBlur  = 20;
         ctx.shadowColor = `hsl(${hue},100%,88%)`;
         for (const ps of paint) {
-          const pOp  = Math.max(0, 1 - (now - ps.born) / ps.life);
+          const pOp  = Math.max(0, 1 - (now - ps.strokeBorn) / PAINT_LIFE);
           if (pOp < 0.02) continue;
           const starR = ps.r * (0.7 + 0.3 * pOp);
           const glowR = starR * 9 * pOp;
@@ -441,10 +444,10 @@ export default function ConstellationCanvas() {
             y: e.clientY + (Math.random() - 0.5) * 4,
             vx: dirX * 0.35 + (Math.random() - 0.5) * 0.4,
             vy: dirY * 0.35 + (Math.random() - 0.5) * 0.4,
-            r:  1.8 + Math.random() * 2.2,
-            born: performance.now(),
-            life: 6000 + Math.random() * 3000,
-            strokeId: curStrokeRef.current,
+            r:    1.8 + Math.random() * 2.2,
+            born:       performance.now(),
+            strokeBorn: strokeBornRef.current,
+            strokeId:   curStrokeRef.current,
           });
           lastPaintRef.current = { x: e.clientX, y: e.clientY };
         }
@@ -466,16 +469,17 @@ export default function ConstellationCanvas() {
       } else {
         isPaintingRef.current = true;
         curStrokeRef.current  = ++_strokeId;
+        strokeBornRef.current = performance.now();
         lastPaintRef.current  = { x: e.clientX, y: e.clientY };
         if (paintStarsRef.current.length < 250) {
           paintStarsRef.current.push({
             x: e.clientX, y: e.clientY,
             vx: (Math.random() - 0.5) * 0.5,
             vy: (Math.random() - 0.5) * 0.5,
-            r:  2.0 + Math.random() * 2.2,
-            born: performance.now(),
-            life: 6000 + Math.random() * 3000,
-            strokeId: curStrokeRef.current,
+            r:        2.0 + Math.random() * 2.2,
+            born:       performance.now(),
+            strokeBorn: strokeBornRef.current,
+            strokeId:   curStrokeRef.current,
           });
         }
       }
