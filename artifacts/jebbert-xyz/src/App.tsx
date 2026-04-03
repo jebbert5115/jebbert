@@ -1,5 +1,6 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { Nav } from "@/components/Nav";
+import { MobileWarning } from "@/components/MobileWarning";
 import Home from "@/pages/Home";
 import Projects from "@/pages/Projects";
 import Games from "@/pages/Games";
@@ -52,6 +53,7 @@ function Router() {
 function App() {
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+      <MobileWarning />
       <Router />
     </WouterRouter>
   );

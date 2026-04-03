@@ -9,14 +9,17 @@ interface Settings {
   attract:     boolean;
 }
 
-const DEFAULTS: Settings = {
-  starCount:   90,
-  connectDist: 155,
-  speed:       1.0,
-  hue:         215,
-  mouseRadius: 150,
-  attract:     true,
-};
+function getDefaults(): Settings {
+  const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768;
+  return {
+    starCount:   isMobile ? 30 : 90,
+    connectDist: 155,
+    speed:       1.0,
+    hue:         215,
+    mouseRadius: 150,
+    attract:     true,
+  };
+}
 
 interface Star {
   x: number; y: number;
@@ -63,9 +66,9 @@ export default function ConstellationCanvas() {
   const curStrokeRef    = useRef<number>(-1);
   const strokeBornRef   = useRef<number>(-1);
   const pairOpRef       = useRef<Map<number, number>>(new Map());
-  const settingsRef     = useRef<Settings>(DEFAULTS);
+  const settingsRef     = useRef<Settings>(getDefaults());
 
-  const [settings, setSettings] = useState<Settings>(DEFAULTS);
+  const [settings, setSettings] = useState<Settings>(() => getDefaults());
   const [showSettings, setShowSettings] = useState(false);
 
   const update = <K extends keyof Settings>(key: K, val: Settings[K]) =>
