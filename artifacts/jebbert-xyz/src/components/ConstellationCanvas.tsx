@@ -106,10 +106,12 @@ export default function ConstellationCanvas() {
           const dx = st.x - mx, dy = st.y - my;
           const d  = Math.hypot(dx, dy);
           if (d < s.mouseRadius && d > 0) {
-            const strength = (1 - d / s.mouseRadius) * 1.4;
+            // Taper force to zero inside dead zone (35px) so stars don't pile on cursor
+            const deadZone = Math.min(d / 35, 1);
+            const strength = (1 - d / s.mouseRadius) * 1.4 * deadZone;
             const dir = s.attract ? -1 : 1;
-            st.vx += (dx / d) * strength * dir * 0.14;
-            st.vy += (dy / d) * strength * dir * 0.14;
+            st.vx += (dx / d) * strength * dir * 0.065;
+            st.vy += (dy / d) * strength * dir * 0.065;
           }
         }
 
@@ -273,34 +275,39 @@ export default function ConstellationCanvas() {
       const paint = paintStarsRef.current;
       if (paint.length > 0) {
         // Sequential constellation lines (i → i+1, same stroke) — the "drawing"
-        const seqSegs: Array<[number,number,number,number,number]> = []; // x1,y1,x2,y2,op
+        // Group segments by strokeId so each stroke fades independently
+        const seqGroups = new Map<number, { op: number; segs: Array<[number,number,number,number]> }>();
         for (let i = 0; i < paint.length - 1; i++) {
           const ps  = paint[i];
           const ps2 = paint[i + 1];
           if (ps.strokeId !== ps2.strokeId) continue;
-          // Both stars share the same strokeBorn → fade in perfect unison
           const op = Math.max(0, 1 - (now - ps.strokeBorn) / PAINT_LIFE);
-          if (op > 0.01) seqSegs.push([ps.x, ps.y, ps2.x, ps2.y, op]);
+          if (op <= 0.01) continue;
+          let grp = seqGroups.get(ps.strokeId);
+          if (!grp) { grp = { op, segs: [] }; seqGroups.set(ps.strokeId, grp); }
+          grp.segs.push([ps.x, ps.y, ps2.x, ps2.y]);
         }
 
-        if (seqSegs.length) {
+        for (const { op, segs } of seqGroups.values()) {
           // Glow underlay
           ctx.save();
+          ctx.globalAlpha = op;
           ctx.shadowBlur  = 16;
           ctx.shadowColor = `hsl(${hue},100%,82%)`;
-          ctx.lineWidth = 2.2;
+          ctx.lineWidth   = 2.2;
           ctx.strokeStyle = `hsla(${hue},100%,88%,0.55)`;
           ctx.beginPath();
-          for (const [x1,y1,x2,y2] of seqSegs) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+          for (const [x1,y1,x2,y2] of segs) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
           ctx.stroke();
-          ctx.restore();
 
           // Bright core line
-          ctx.beginPath();
-          ctx.lineWidth = 1.1;
+          ctx.lineWidth   = 1.1;
+          ctx.shadowBlur  = 0;
           ctx.strokeStyle = `hsla(${hue},80%,100%,0.85)`;
-          for (const [x1,y1,x2,y2] of seqSegs) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
+          ctx.beginPath();
+          for (const [x1,y1,x2,y2] of segs) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
           ctx.stroke();
+          ctx.restore();
         }
 
         // Paint-to-background-star connections (batched)
