@@ -1336,6 +1336,13 @@ canvas.flow-field-canvas {
   margin: 0;
 }
 
+.bot-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
 .bot-invite-btn {
   display: inline-flex;
   align-items: center;
@@ -1353,7 +1360,30 @@ canvas.flow-field-canvas {
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
   text-decoration: none;
-  margin-top: auto;
+}
+
+.bot-site-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid rgba(99, 179, 237, 0.45);
+  border-radius: 6px;
+  font-family: var(--font-accent);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #63b3ed;
+  background: rgba(99, 179, 237, 0.08);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  text-decoration: none;
+}
+
+.bot-site-btn:hover {
+  background: rgba(99, 179, 237, 0.18);
+  border-color: rgba(99, 179, 237, 0.8);
 }
 
 .bot-invite-btn:hover {
@@ -1371,7 +1401,6 @@ canvas.flow-field-canvas {
   padding: 7px 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 6px;
-  margin-top: auto;
 }
 
 /* ── Hidden element ── */
