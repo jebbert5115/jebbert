@@ -20,13 +20,11 @@ function GameCard({ title, children, className = '' }: { title: string; children
   const cardRef = useRef<HTMLDivElement>(null);
   const { isFs, toggle } = useFullscreen(cardRef);
   return (
-    <div ref={cardRef} className={`card game-card ${className}`}>
-      <div className="game-header-row">
-        <div className="game-title">{title}</div>
-        <button className="fullscreen-btn" onClick={toggle} title={isFs ? 'Exit fullscreen' : 'Fullscreen'}>
-          {isFs ? '✕' : '⛶'}
-        </button>
-      </div>
+    <div ref={cardRef} className={`card game-card ${className}`} style={{ position: 'relative' }}>
+      <button className="fullscreen-btn fullscreen-btn-corner" onClick={toggle} title={isFs ? 'Exit fullscreen' : 'Fullscreen'}>
+        {isFs ? '✕' : '⛶'}
+      </button>
+      <div className="game-title">{title}</div>
       {children}
     </div>
   );
