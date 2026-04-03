@@ -235,7 +235,7 @@ body::after {
 
 /* ── Cards / Panels ── */
 .card {
-  background: rgba(18, 18, 26, 0.25);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 20px;
