@@ -466,7 +466,7 @@ body::after {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 24px;
-  height: calc(100vh - 200px);
+  height: max(calc(100vh - 200px), 860px);
 }
 
 .game-card {
@@ -623,6 +623,10 @@ canvas {
   border-radius: 4px;
   image-rendering: pixelated;
   background: #000;
+}
+
+.game-card canvas {
+  max-width: 100%;
 }
 
 .game-controls {
