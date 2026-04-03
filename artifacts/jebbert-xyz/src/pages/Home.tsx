@@ -52,18 +52,18 @@ export default function Home() {
       {!hideCards && (
         <div className="home-stack">
 
-          {/* ── Discord profile card ── */}
-          <DiscordProfile
-            data={data}
-            loading={loading}
-            avatarUrl={avatarUrl}
-            avatarFallback={avatarFallback}
-          />
-
-          {/* ── Mid row: Spotify + Game ── */}
-          <div className="home-mid-row">
-            <SpotifyCard data={data} loading={loading} />
-            <GameCard data={data} loading={loading} />
+          {/* ── Unified presence block ── */}
+          <div className="presence-block">
+            <DiscordProfile
+              data={data}
+              loading={loading}
+              avatarUrl={avatarUrl}
+              avatarFallback={avatarFallback}
+            />
+            <div className="home-mid-row">
+              <SpotifyCard data={data} loading={loading} />
+              <GameCard data={data} loading={loading} />
+            </div>
           </div>
 
           {/* ── About Me ── */}

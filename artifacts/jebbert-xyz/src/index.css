@@ -173,6 +173,53 @@ body::after {
   align-items: start;
 }
 
+/* ── Presence block: unified Discord + Spotify + Game ── */
+.presence-block {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(12, 12, 20, 0.25);
+  overflow: visible;
+}
+
+/* Discord profile inside block — no independent border/bg */
+.presence-block .discord-profile {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+/* Banner clips to the block's top rounded corners */
+.presence-block .dp-banner {
+  border-radius: 12px 12px 0 0;
+}
+
+/* Mid row inside block: flush, no gap, divider on top */
+.presence-block .home-mid-row {
+  gap: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Cards inside the mid-row: strip individual borders/bg */
+.presence-block .home-mid-row .card {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Vertical divider between Spotify and Game */
+.presence-block .home-mid-row > :first-child {
+  border-right: 1px solid var(--border);
+  border-bottom-left-radius: 12px;
+  overflow: hidden;
+}
+
+.presence-block .home-mid-row > :last-child {
+  border-bottom-right-radius: 12px;
+  overflow: hidden;
+}
+
 /* Legacy classes (kept for stability, no longer used in home layout) */
 .home-layout {
   display: grid;
