@@ -28,11 +28,9 @@ function useElapsed(start?: number) {
   useEffect(() => {
     if (!start) { setElapsed(''); return; }
     const update = () => {
-      // Discord timestamps < 1e11 are in seconds; >= 1e11 are in milliseconds
       const startMs = start < 1e11 ? start * 1000 : start;
       const secs = Math.floor((Date.now() - startMs) / 1000);
-      // Sanity check: ignore bogus timestamps > 12 hours
-      if (secs < 0 || secs > 43200) { setElapsed(''); return; }
+      if (secs < 0) { setElapsed(''); return; }
       const h = Math.floor(secs / 3600);
       const m = Math.floor((secs % 3600) / 60);
       const s = secs % 60;
@@ -80,25 +78,36 @@ export function GameCard({ data, loading }: GameCardProps) {
 
   const iconUrl = getGameIconUrl(activity);
 
+  const partyText = activity.party?.size
+    ? `${activity.party.size[0]} / ${activity.party.size[1]} Players`
+    : activity.state ?? null;
+
   return (
     <div className="card pulse">
       <div className="card-title">Now Playing</div>
-      <div className="game-card">
+      <div className="spotify-card">
         {iconUrl && !iconFailed ? (
           <img
-            className="game-icon"
+            className="album-art"
+            style={{ borderRadius: '8px' }}
             src={iconUrl}
             alt={activity.name}
             onError={() => setIconFailed(true)}
           />
         ) : (
-          <div className="game-icon-placeholder">🎮</div>
+          <div className="album-art-placeholder">🎮</div>
         )}
-        <div className="game-info">
-          <div className="game-name">{activity.name}</div>
-          {activity.details && <div className="game-details">{activity.details}</div>}
-          {activity.state && <div className="game-state">{activity.state}</div>}
-          {elapsed && <div className="game-elapsed">{elapsed} elapsed</div>}
+        <div className="spotify-info">
+          <div className="spotify-song">{activity.name}</div>
+          {activity.details && (
+            <div className="spotify-artist">{activity.details}</div>
+          )}
+          {partyText && (
+            <div className="spotify-artist">{partyText}</div>
+          )}
+          {elapsed && (
+            <div className="game-elapsed">{elapsed} elapsed</div>
+          )}
         </div>
       </div>
     </div>

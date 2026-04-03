@@ -44,6 +44,10 @@ export interface LanyardData {
       start?: number;
       end?: number;
     };
+    party?: {
+      id?: string;
+      size?: [number, number];
+    };
   }>;
 }
 
