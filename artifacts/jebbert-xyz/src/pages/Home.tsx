@@ -42,8 +42,10 @@ export default function Home() {
               <div className="display-name">
                 <span className="glitch-text">Jebbert</span>
               </div>
-              <div className="username">@ jebbert5115</div>
-              <span className="guild-badge">BOOT</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="username">@ jebbert5115</div>
+                <span className="guild-badge">BOOT</span>
+              </div>
               {customStatus && (
                 <div className="custom-status hero-status">"{customStatus}"</div>
               )}
