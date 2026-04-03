@@ -187,7 +187,9 @@ function SnakeGame() {
 
   return (
     <GameCard title="SNAKE">
-      <canvas ref={canvasRef} width={COLS * CELL} height={ROWS * CELL} />
+      <div className="canvas-container">
+        <canvas ref={canvasRef} width={COLS * CELL} height={ROWS * CELL} />
+      </div>
       <div className="game-controls">
         <button className="btn btn-primary" onClick={startGame}>
           {gameState === 'dead' ? 'Restart' : gameState === 'running' ? 'Restart' : 'Start'}
@@ -314,23 +316,47 @@ function createDeck(): MemCard[] {
   return doubled.map((emoji, i) => ({ id: i, emoji, flipped: false, matched: false }));
 }
 
+type MemPhase = 'idle' | 'peeking' | 'playing' | 'won';
+
 function MemoryGame() {
   const [cards, setCards] = useState<MemCard[]>(createDeck);
   const [selected, setSelected] = useState<number[]>([]);
   const [moves, setMoves] = useState(0);
-  const [startTime] = useState(Date.now());
+  const [phase, setPhase] = useState<MemPhase>('idle');
   const [elapsed, setElapsed] = useState(0);
-  const [won, setWon] = useState(false);
   const [locked, setLocked] = useState(false);
+  const startTimeRef = useRef<number>(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (won) return;
-    const t = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
-    return () => clearInterval(t);
-  }, [won, startTime]);
+    if (phase === 'playing') {
+      timerRef.current = setInterval(
+        () => setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000)),
+        1000
+      );
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [phase]);
+
+  const startGame = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    const deck = createDeck();
+    setCards(deck.map(c => ({ ...c, flipped: true })));
+    setSelected([]);
+    setMoves(0);
+    setElapsed(0);
+    setLocked(true);
+    setPhase('peeking');
+    setTimeout(() => {
+      setCards(deck.map(c => ({ ...c, flipped: false })));
+      setLocked(false);
+      startTimeRef.current = Date.now();
+      setPhase('playing');
+    }, 1800);
+  };
 
   const flip = (id: number) => {
-    if (locked || won) return;
+    if (locked || phase !== 'playing') return;
     const card = cards[id];
     if (card.flipped || card.matched || selected.length >= 2) return;
 
@@ -350,7 +376,7 @@ function MemoryGame() {
         setCards(matched);
         setSelected([]);
         setLocked(false);
-        if (matched.every(c => c.matched)) setWon(true);
+        if (matched.every(c => c.matched)) setPhase('won');
       } else {
         setTimeout(() => {
           setCards(prev => prev.map(c =>
@@ -363,19 +389,20 @@ function MemoryGame() {
     }
   };
 
-  const restart = () => {
+  const reset = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setCards(createDeck());
     setSelected([]);
     setMoves(0);
     setElapsed(0);
-    setWon(false);
     setLocked(false);
+    setPhase('idle');
   };
 
-  return (
-    <GameCard title="MEMORY FLIP">
-      {won ? (
-        <div style={{ textAlign: 'center', padding: '24px' }}>
+  if (phase === 'won') {
+    return (
+      <GameCard title="MEMORY FLIP">
+        <div style={{ textAlign: 'center', padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎉</div>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: '9px', color: 'var(--accent-3)', marginBottom: '8px' }}>
             you actually did it
@@ -383,30 +410,43 @@ function MemoryGame() {
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
             {moves} moves · {elapsed}s
           </div>
-          <button className="btn btn-primary" onClick={restart}>Play Again</button>
+          <button className="btn btn-primary" onClick={startGame}>Play Again</button>
         </div>
-      ) : (
-        <>
-          <div className="memory-grid">
-            {cards.map(card => (
-              <div
-                key={card.id}
-                className={`memory-card ${card.flipped || card.matched ? 'flipped' : ''} ${card.matched ? 'matched' : ''}`}
-                onClick={() => flip(card.id)}
-              >
-                <div className="memory-card-inner">
-                  <div className="memory-card-front">?</div>
-                  <div className="memory-card-back">{card.emoji}</div>
-                </div>
-              </div>
-            ))}
+      </GameCard>
+    );
+  }
+
+  return (
+    <GameCard title="MEMORY FLIP">
+      <div className="memory-grid">
+        {cards.map(card => (
+          <div
+            key={card.id}
+            className={`memory-card ${card.flipped || card.matched ? 'flipped' : ''} ${card.matched ? 'matched' : ''}`}
+            onClick={() => flip(card.id)}
+          >
+            <div className="memory-card-inner">
+              <div className="memory-card-front">?</div>
+              <div className="memory-card-back">{card.emoji}</div>
+            </div>
           </div>
-          <div className="game-controls">
-            <button className="btn" onClick={restart}>Restart</button>
+        ))}
+      </div>
+      <div className="game-controls">
+        {phase === 'idle' ? (
+          <button className="btn btn-primary" onClick={startGame}>Start</button>
+        ) : (
+          <>
+            <button className="btn" onClick={reset}>Reset</button>
             <span className="score-display">Moves: {moves}</span>
             <span className="score-display">Time: {elapsed}s</span>
-          </div>
-        </>
+          </>
+        )}
+      </div>
+      {phase === 'peeking' && (
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: '8px', color: 'var(--accent-2)', textAlign: 'center' }}>
+          memorize...
+        </div>
       )}
     </GameCard>
   );

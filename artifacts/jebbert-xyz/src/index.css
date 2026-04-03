@@ -625,8 +625,26 @@ canvas {
   background: #000;
 }
 
-.game-card canvas {
+.canvas-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+}
+
+.canvas-container canvas {
   max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  aspect-ratio: 1 / 1;
+}
+
+.card:fullscreen .canvas-container,
+.card:-webkit-full-screen .canvas-container {
+  flex: 0 0 auto;
+  overflow: visible;
 }
 
 .game-controls {
