@@ -190,30 +190,31 @@ export default function ConstellationCanvas() {
         }
       }
 
-      // Low tier: thin, single batch
+      // Low tier: dim base lines
       if (segsLow.length) {
         ctx.beginPath();
-        ctx.lineWidth = 0.7;
-        ctx.strokeStyle = `hsla(${hue},88%,78%,0.18)`;
+        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = `hsla(${hue},96%,82%,0.32)`;
         for (const [x1,y1,x2,y2] of segsLow) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
         ctx.stroke();
       }
 
-      // High tier: slightly brighter, single batch
+      // High tier: bright core + neon glow pass
       if (segsHigh.length) {
+        // Bright core
         ctx.beginPath();
-        ctx.lineWidth = 1.1;
-        ctx.strokeStyle = `hsla(${hue},92%,84%,0.52)`;
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `hsla(${hue},96%,84%,0.72)`;
         for (const [x1,y1,x2,y2] of segsHigh) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
         ctx.stroke();
 
-        // Neon glow pass on high tier only (one shadow flush, much cheaper)
+        // Neon glow pass — one shadow flush for the whole batch
         ctx.save();
-        ctx.shadowBlur  = 8;
+        ctx.shadowBlur  = 14;
         ctx.shadowColor = `hsl(${hue},100%,72%)`;
         ctx.beginPath();
-        ctx.lineWidth = 0.7;
-        ctx.strokeStyle = `hsla(${hue},100%,90%,0.32)`;
+        ctx.lineWidth = 1.0;
+        ctx.strokeStyle = `hsla(${hue},100%,92%,0.55)`;
         for (const [x1,y1,x2,y2] of segsHigh) { ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); }
         ctx.stroke();
         ctx.restore();
@@ -299,10 +300,9 @@ export default function ConstellationCanvas() {
       }
 
       // ── Draw: regular star dots ────────────────────────────
-      // One shadowBlur state for all stars
       ctx.save();
-      ctx.shadowBlur  = 14;
-      ctx.shadowColor = `hsl(${hue},100%,72%)`;
+      ctx.shadowBlur  = 18;
+      ctx.shadowColor = `hsl(${hue},100%,75%)`;
       for (let i = 0; i < stars.length; i++) {
         const st     = stars[i];
         const pulse  = 0.5 + 0.5 * Math.sin(ts * 0.0014 + st.phase);
@@ -310,14 +310,14 @@ export default function ConstellationCanvas() {
         const dMouse = mActive ? Math.hypot(st.x - mx, st.y - my) : 9999;
         const isNear = dMouse < s.mouseRadius;
 
-        const glowA = isDrag ? 1 : isNear ? 0.88 + 0.12 * pulse : 0.35 + 0.25 * pulse;
-        const starR  = isDrag ? st.r * 2.5 : isNear ? st.r * 1.7 : st.r;
-        const glowR  = starR * 6;
+        const glowA = isDrag ? 1 : isNear ? 0.9 + 0.1 * pulse : 0.45 + 0.3 * pulse;
+        const starR  = isDrag ? st.r * 2.5 : isNear ? st.r * 1.8 : st.r;
+        const glowR  = starR * 7;
 
         const g = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, glowR);
-        g.addColorStop(0,    `hsla(${hue},95%,98%,${glowA * 0.9})`);
-        g.addColorStop(0.38, `hsla(${hue},88%,82%,${glowA * 0.3})`);
-        g.addColorStop(1,    `hsla(${hue},70%,65%,0)`);
+        g.addColorStop(0,    `hsla(${hue},95%,98%,${glowA * 0.85})`);
+        g.addColorStop(0.35, `hsla(${hue},90%,85%,${glowA * 0.35})`);
+        g.addColorStop(1,    `hsla(${hue},80%,70%,0)`);
         ctx.beginPath();
         ctx.arc(st.x, st.y, glowR, 0, Math.PI * 2);
         ctx.fillStyle = g;
@@ -325,7 +325,7 @@ export default function ConstellationCanvas() {
 
         ctx.beginPath();
         ctx.arc(st.x, st.y, starR, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${hue},50%,100%,1)`;
+        ctx.fillStyle = `hsla(${hue},60%,100%,1)`;
         ctx.fill();
       }
       ctx.restore();
