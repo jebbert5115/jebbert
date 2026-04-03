@@ -593,6 +593,8 @@ body::after {
   flex-direction: column;
   gap: 12px;
   justify-content: flex-start;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* ── Game / Extra card header row (title + fullscreen btn) ── */
@@ -996,12 +998,15 @@ canvas.flow-field-canvas {
 .memory-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: minmax(0, 1fr);
   gap: 8px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  height: 0;
 }
 
 .memory-card {
-  aspect-ratio: 1;
   cursor: crosshair;
   perspective: 600px;
   position: relative;
