@@ -1326,10 +1326,10 @@ canvas.flow-field-canvas {
 /* ── Hidden element ── */
 .secret-hidden-link {
   position: fixed;
-  bottom: 2px;
-  right: 2px;
-  width: 3px;
-  height: 3px;
+  bottom: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
   opacity: 0.01;
   z-index: 50;
   display: block;
