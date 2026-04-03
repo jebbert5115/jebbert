@@ -119,17 +119,33 @@ export default function FlowFieldCanvas() {
     }
 
     /* ── Events ─────────────────────────────────────────────── */
-    const onMove   = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true; };
-    const onLeave  = ()               => { mouse.on = false; };
-    const onClick  = (e: MouseEvent) => { placeAttractor(e.clientX, e.clientY); };
-    const onDbl    = (e: MouseEvent) => { e.preventDefault(); removeNearest(e.clientX, e.clientY); };
+    let clickTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const onMove  = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.on = true; };
+    const onLeave = ()               => { mouse.on = false; };
+
+    // Debounce single-click: wait 240ms to confirm it's not a double-click
+    const onClick = (e: MouseEvent) => {
+      if (clickTimer !== null) return;
+      const cx = e.clientX, cy = e.clientY;
+      clickTimer = setTimeout(() => {
+        placeAttractor(cx, cy);
+        clickTimer = null;
+      }, 240);
+    };
+
+    const onDbl = (e: MouseEvent) => {
+      e.preventDefault();
+      if (clickTimer !== null) { clearTimeout(clickTimer); clickTimer = null; }
+      removeNearest(e.clientX, e.clientY);
+    };
 
     resize();
-    window.addEventListener('resize',    resize);
-    window.addEventListener('mousemove', onMove);
+    window.addEventListener('resize',     resize);
+    window.addEventListener('mousemove',  onMove);
     window.addEventListener('mouseleave', onLeave);
-    window.addEventListener('click',     onClick);
-    window.addEventListener('dblclick',  onDbl);
+    window.addEventListener('click',      onClick);
+    window.addEventListener('dblclick',   onDbl);
 
     /* ── Attractor draw ─────────────────────────────────────── */
     function drawAttractor(a: Attractor, now: number) {
@@ -234,6 +250,7 @@ export default function FlowFieldCanvas() {
 
     return () => {
       cancelAnimationFrame(raf);
+      if (clickTimer !== null) clearTimeout(clickTimer);
       window.removeEventListener('resize',     resize);
       window.removeEventListener('mousemove',  onMove);
       window.removeEventListener('mouseleave', onLeave);
