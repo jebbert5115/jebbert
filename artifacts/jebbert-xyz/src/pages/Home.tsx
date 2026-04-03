@@ -1,26 +1,15 @@
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useLanyard } from '../hooks/useLanyard';
 import { SpotifyCard } from '../components/SpotifyCard';
 import { GameCard } from '../components/GameCard';
 import { Link } from 'wouter';
 import FlowFieldCanvas from '../components/FlowFieldCanvas';
+import DiscordProfile from '../components/DiscordProfile';
 
 export default function Home() {
   const { data, loading, avatarUrl, avatarFallback, customStatus } = useLanyard();
-  const [imgFailed, setImgFailed]   = useState(false);
   const [hideCards, setHideCards]   = useState(false);
   const resetColorsRef              = useRef<(() => void) | null>(null);
-
-  const statusClass = data ? `status-${data.discord_status}` : 'status-offline';
-  const dotClass    = data?.discord_status ?? 'offline';
-  const resolvedAvatar = avatarUrl || avatarFallback || 'https://cdn.discordapp.com/embed/avatars/0.png';
-
-  const statusLabel = !customStatus && data
-    ? (data.discord_status === 'dnd'    ? 'Do not disturb' :
-       data.discord_status === 'idle'   ? 'AFK somewhere...' :
-       data.discord_status === 'online' ? 'Online and lurking' :
-       'Somewhere in the void')
-    : null;
 
   return (
     <>
@@ -34,7 +23,6 @@ export default function Home() {
           onClick={() => setHideCards(h => !h)}
         >
           {hideCards ? (
-            /* Grid icon — show cards */
             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
               <rect x="0" y="0" width="6" height="6" rx="1"/>
               <rect x="8" y="0" width="6" height="6" rx="1"/>
@@ -42,7 +30,6 @@ export default function Home() {
               <rect x="8" y="8" width="6" height="6" rx="1"/>
             </svg>
           ) : (
-            /* X icon — hide cards */
             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
               <line x1="1" y1="1" x2="13" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
               <line x1="13" y1="1" x2="1"  y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
@@ -55,7 +42,6 @@ export default function Home() {
           title="Reset particle colors"
           onClick={() => resetColorsRef.current?.()}
         >
-          {/* Reset / refresh icon */}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="1 4 1 10 7 10"/>
             <path d="M3.51 15a9 9 0 1 0 .49-3.63"/>
@@ -66,52 +52,29 @@ export default function Home() {
       {!hideCards && (
         <div className="home-stack">
 
-          {/* ── Hero: full-width profile banner ── */}
-          <div className="card hero-card">
-            <div className="hero-profile">
-              <div className={`avatar-wrapper ${statusClass}`}>
-                <img
-                  className="avatar-img"
-                  src={imgFailed ? (avatarFallback || 'https://cdn.discordapp.com/embed/avatars/0.png') : resolvedAvatar}
-                  alt="Jebbert avatar"
-                  onError={() => setImgFailed(true)}
-                />
-                <span className={`status-dot ${dotClass}`} />
-              </div>
+          {/* ── Discord profile card ── */}
+          <DiscordProfile
+            data={data}
+            loading={loading}
+            customStatus={customStatus}
+            avatarUrl={avatarUrl}
+            avatarFallback={avatarFallback}
+          />
 
-              <div className="hero-info">
-                <div className="display-name">
-                  <span className="glitch-text">Jebbert</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div className="username">@ jebbert5115</div>
-                  <span className="guild-badge">BOOT</span>
-                </div>
-                {customStatus && (
-                  <div className="custom-status hero-status">"{customStatus}"</div>
-                )}
-                {statusLabel && (
-                  <div className="custom-status hero-status" style={{ color: 'var(--text-muted)' }}>
-                    {statusLabel}
-                  </div>
-                )}
-              </div>
-
-              <div className="social-links hero-social">
-                <a className="social-btn" href="https://github.com/jebbert5115" target="_blank" rel="noreferrer">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
-                  </svg>
-                  GitHub
-                </a>
-                <a className="social-btn" href="https://discord.com/users/751276412308291634" target="_blank" rel="noreferrer">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026 13.83 13.83 0 0 0 1.226-1.963.074.074 0 0 0-.041-.104 13.175 13.175 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z"/>
-                  </svg>
-                  Discord
-                </a>
-              </div>
-            </div>
+          {/* ── Social links strip ── */}
+          <div className="card social-strip">
+            <a className="social-btn" href="https://github.com/jebbert5115" target="_blank" rel="noreferrer">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+              GitHub
+            </a>
+            <a className="social-btn" href="https://discord.com/users/751276412308291634" target="_blank" rel="noreferrer">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.317 4.492c-1.53-.69-3.17-1.2-4.885-1.49a.075.075 0 0 0-.079.036c-.21.369-.444.85-.608 1.23a18.566 18.566 0 0 0-5.487 0 12.36 12.36 0 0 0-.617-1.23A.077.077 0 0 0 8.562 3c-1.714.29-3.354.8-4.885 1.491a.07.07 0 0 0-.032.027C.533 9.093-.32 13.555.099 17.961a.08.08 0 0 0 .031.055 20.03 20.03 0 0 0 5.993 2.98.078.078 0 0 0 .084-.026 13.83 13.83 0 0 0 1.226-1.963.074.074 0 0 0-.041-.104 13.175 13.175 0 0 1-1.872-.878.075.075 0 0 1-.008-.125c.126-.093.252-.19.372-.287a.075.075 0 0 1 .078-.01c3.927 1.764 8.18 1.764 12.061 0a.075.075 0 0 1 .079.009c.12.098.245.195.372.288a.075.075 0 0 1-.006.125c-.598.344-1.22.635-1.873.877a.075.075 0 0 0-.041.105c.36.687.772 1.341 1.225 1.962a.077.077 0 0 0 .084.028 19.963 19.963 0 0 0 6.002-2.981.076.076 0 0 0 .032-.054c.5-5.094-.838-9.52-3.549-13.442a.06.06 0 0 0-.031-.028zM8.02 15.278c-1.182 0-2.157-1.069-2.157-2.38 0-1.312.956-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.956 2.38-2.157 2.38zm7.975 0c-1.183 0-2.157-1.069-2.157-2.38 0-1.312.955-2.38 2.157-2.38 1.21 0 2.176 1.077 2.157 2.38 0 1.312-.946 2.38-2.157 2.38z"/>
+              </svg>
+              Discord
+            </a>
           </div>
 
           {/* ── Mid row: Spotify + Game ── */}

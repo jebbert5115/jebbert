@@ -21,13 +21,26 @@ export interface LanyardData {
     id: string;
     username: string;
     display_name: string;
-    avatar: string;
     global_name: string;
+    avatar: string;
+    public_flags: number;
+    avatar_decoration_data: {
+      asset: string;
+      sku_id: string;
+      expires_at: string | null;
+    } | null;
+    primary_guild: {
+      identity_guild_id: string;
+      identity_enabled: boolean;
+      tag: string;
+      badge: string;
+    } | null;
   };
   listening_to_spotify: boolean;
   spotify: SpotifyData | null;
   active_on_discord_desktop: boolean;
   active_on_discord_mobile: boolean;
+  active_on_discord_web: boolean;
   activities: Array<{
     name: string;
     type: number;
