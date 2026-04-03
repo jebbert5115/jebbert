@@ -282,6 +282,7 @@ export default function FlowFieldCanvas() {
   return (
     <canvas
       ref={canvasRef}
+      className="flow-field-canvas"
       style={{
         position: 'fixed',
         inset: 0,

@@ -625,6 +625,14 @@ canvas {
   background: #000;
 }
 
+/* Flow field background canvas — reset all game-canvas global styles */
+canvas.flow-field-canvas {
+  border: none;
+  border-radius: 0;
+  image-rendering: auto;
+  background: transparent;
+}
+
 .canvas-container {
   flex: 1;
   min-height: 0;
