@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import FlowFieldCanvas from '../components/FlowFieldCanvas';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -55,7 +56,9 @@ const langColor: Record<Bot['lang'], string> = {
 
 export default function Projects() {
   return (
-    <div>
+    <>
+      <FlowFieldCanvas />
+
       <div className="page-title">// <span className="page-title-accent">Projects</span></div>
       <p className="page-subtitle">discord bots i've built</p>
 
@@ -92,6 +95,6 @@ export default function Projects() {
           </div>
         ))}
       </div>
-    </div>
+    </>
   );
 }
