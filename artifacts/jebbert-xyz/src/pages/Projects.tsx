@@ -75,25 +75,20 @@ export default function Projects() {
               {bot.lang}
             </span>
 
-            <div className="bot-name">{bot.name}</div>
+            <div className="bot-name">
+              {bot.website ? (
+                <a href={bot.website} target="_blank" rel="noreferrer" className="bot-name-link">
+                  {bot.name}
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>
+                  </svg>
+                </a>
+              ) : bot.name}
+            </div>
 
             <p className="bot-about">{bot.about}</p>
 
             <div className="bot-actions">
-              {bot.website && (
-                <a
-                  className="bot-site-btn"
-                  href={bot.website}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                  </svg>
-                  Website
-                </a>
-              )}
               {bot.invite ? (
                 <a
                   className="bot-invite-btn"
