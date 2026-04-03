@@ -21,10 +21,10 @@ function spawnConfetti(x: number, y: number) {
 function useFullscreen(ref: React.RefObject<HTMLDivElement | null>) {
   const [isFs, setIsFs] = useState(false);
   useEffect(() => {
-    const handler = () => setIsFs(!!document.fullscreenElement);
+    const handler = () => setIsFs(document.fullscreenElement === ref.current);
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
+  }, [ref]);
   const toggle = () => {
     if (!document.fullscreenElement) ref.current?.requestFullscreen();
     else document.exitFullscreen();
