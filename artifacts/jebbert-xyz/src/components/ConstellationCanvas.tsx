@@ -59,8 +59,6 @@ export default function ConstellationCanvas() {
   const starsRef        = useRef<Star[]>([]);
   const paintStarsRef   = useRef<PaintStar[]>([]);
   const mouseRef        = useRef({ x: -9999, y: -9999, active: false });
-  const dragRef         = useRef<{ idx: number; prevX: number; prevY: number; vx: number; vy: number } | null>(null);
-  const dragReleasedRef = useRef<number>(-9999);
   const isPaintingRef   = useRef(false);
   const lastPaintRef    = useRef({ x: -9999, y: -9999 });
   const curStrokeRef    = useRef<number>(-1);
@@ -100,12 +98,10 @@ export default function ConstellationCanvas() {
       ctx.clearRect(0, 0, W, H);
 
       // ── Physics: regular stars ──────────────────────────────
-      const dragCooldown = ts - dragReleasedRef.current < 800;
       for (let i = 0; i < stars.length; i++) {
         const st = stars[i];
-        if (dragRef.current?.idx === i) continue;
 
-        if (mActive && !dragCooldown) {
+        if (mActive) {
           const dx = st.x - mx, dy = st.y - my;
           const d  = Math.hypot(dx, dy);
           if (d < s.mouseRadius && d > 0) {
@@ -341,12 +337,11 @@ export default function ConstellationCanvas() {
       for (let i = 0; i < stars.length; i++) {
         const st     = stars[i];
         const pulse  = 0.5 + 0.5 * Math.sin(ts * 0.0014 + st.phase);
-        const isDrag = dragRef.current?.idx === i;
         const dMouse = mActive ? Math.hypot(st.x - mx, st.y - my) : 9999;
         const isNear = dMouse < s.mouseRadius;
 
-        const glowA = isDrag ? 1 : isNear ? 0.9 + 0.1 * pulse : 0.45 + 0.3 * pulse;
-        const starR  = isDrag ? st.r * 2.5 : isNear ? st.r * 1.8 : st.r;
+        const glowA = isNear ? 0.9 + 0.1 * pulse : 0.45 + 0.3 * pulse;
+        const starR  = isNear ? st.r * 1.8 : st.r;
         const glowR  = starR * 7;
 
         const g = ctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, glowR);
@@ -430,17 +425,6 @@ export default function ConstellationCanvas() {
       mouseRef.current.y = e.clientY;
       mouseRef.current.active = true;
 
-      if (dragRef.current) {
-        const dr = dragRef.current;
-        const dx = e.clientX - dr.prevX, dy = e.clientY - dr.prevY;
-        dr.vx = dx * 0.65 + dr.vx * 0.35;
-        dr.vy = dy * 0.65 + dr.vy * 0.35;
-        dr.prevX = e.clientX; dr.prevY = e.clientY;
-        const st = starsRef.current[dr.idx];
-        st.x = e.clientX; st.y = e.clientY;
-        return;
-      }
-
       if (isPaintingRef.current) {
         const lp   = lastPaintRef.current;
         const dist = Math.hypot(e.clientX - lp.x, e.clientY - lp.y);
@@ -466,54 +450,30 @@ export default function ConstellationCanvas() {
       const tgt = e.target as HTMLElement;
       if (tgt.closest('button,a,input,select,textarea,[role="button"]')) return;
 
-      const stars = starsRef.current;
-      let best = -1, bestD = 48;
-      for (let i = 0; i < stars.length; i++) {
-        const d = Math.hypot(stars[i].x - e.clientX, stars[i].y - e.clientY);
-        if (d < bestD) { bestD = d; best = i; }
-      }
-      if (best >= 0) {
-        dragRef.current = { idx: best, prevX: e.clientX, prevY: e.clientY, vx: 0, vy: 0 };
-      } else {
-        isPaintingRef.current = true;
-        curStrokeRef.current  = ++_strokeId;
-        strokeBornRef.current = performance.now();
-        lastPaintRef.current  = { x: e.clientX, y: e.clientY };
-        if (paintStarsRef.current.length < 250) {
-          paintStarsRef.current.push({
-            x: e.clientX, y: e.clientY,
-            vx: (Math.random() - 0.5) * 0.5,
-            vy: (Math.random() - 0.5) * 0.5,
-            r:        2.0 + Math.random() * 2.2,
-            born:       performance.now(),
-            strokeBorn: strokeBornRef.current,
-            strokeId:   curStrokeRef.current,
-          });
-        }
+      isPaintingRef.current = true;
+      curStrokeRef.current  = ++_strokeId;
+      strokeBornRef.current = performance.now();
+      lastPaintRef.current  = { x: e.clientX, y: e.clientY };
+      if (paintStarsRef.current.length < 250) {
+        paintStarsRef.current.push({
+          x: e.clientX, y: e.clientY,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          r:        2.0 + Math.random() * 2.2,
+          born:       performance.now(),
+          strokeBorn: strokeBornRef.current,
+          strokeId:   curStrokeRef.current,
+        });
       }
     };
 
     const onUp = () => {
-      if (dragRef.current) {
-        const st = starsRef.current[dragRef.current.idx];
-        st.vx = dragRef.current.vx * 0.45;
-        st.vy = dragRef.current.vy * 0.45;
-        dragRef.current = null;
-        dragReleasedRef.current = performance.now();
-      }
       isPaintingRef.current = false;
     };
 
     const onLeave = () => {
       mouseRef.current.active = false;
       isPaintingRef.current   = false;
-      if (dragRef.current) {
-        const st = starsRef.current[dragRef.current.idx];
-        st.vx = dragRef.current.vx * 0.45;
-        st.vy = dragRef.current.vy * 0.45;
-        dragRef.current = null;
-        dragReleasedRef.current = performance.now();
-      }
     };
 
     window.addEventListener('mousemove',  onMove);
