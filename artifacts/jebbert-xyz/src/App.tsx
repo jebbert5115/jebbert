@@ -5,6 +5,7 @@ import Home from "@/pages/Home";
 import Projects from "@/pages/Projects";
 import Games from "@/pages/Games";
 import Extras from "@/pages/Extras";
+import ScreenSavers from "@/pages/ScreenSavers";
 import Secret from "@/pages/Secret";
 
 function NotFound() {
@@ -42,6 +43,7 @@ function Router() {
           <Route path="/projects" component={Projects} />
           <Route path="/games" component={Games} />
           <Route path="/extras" component={Extras} />
+          <Route path="/screensavers" component={ScreenSavers} />
           <Route path="/secret" component={Secret} />
           <Route component={NotFound} />
         </Switch>

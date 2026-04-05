@@ -54,7 +54,7 @@ function makeStars(w: number, h: number, count: number, speed: number): Star[] {
   });
 }
 
-export default function ConstellationCanvas() {
+export default function ConstellationCanvas({ preview = false }: { preview?: boolean }) {
   const canvasRef       = useRef<HTMLCanvasElement>(null);
   const starsRef        = useRef<Star[]>([]);
   const paintStarsRef   = useRef<PaintStar[]>([]);
@@ -80,13 +80,18 @@ export default function ConstellationCanvas() {
     let animId: number;
 
     const resize = () => {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width  = preview ? canvas.offsetWidth  : window.innerWidth;
+      canvas.height = preview ? canvas.offsetHeight : window.innerHeight;
       const s = settingsRef.current;
       starsRef.current = makeStars(canvas.width, canvas.height, s.starCount, s.speed);
     };
     resize();
     window.addEventListener('resize', resize);
+    let ro: ResizeObserver | null = null;
+    if (preview) {
+      ro = new ResizeObserver(resize);
+      ro.observe(canvas);
+    }
 
     const draw = (ts: number) => {
       const s = settingsRef.current;
@@ -409,7 +414,7 @@ export default function ConstellationCanvas() {
     };
 
     animId = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); ro?.disconnect(); };
   }, []);
 
   useEffect(() => {
@@ -420,6 +425,8 @@ export default function ConstellationCanvas() {
   }, [settings.starCount, settings.speed]);
 
   useEffect(() => {
+    if (preview) return; // no interaction in preview mode
+
     const onMove = (e: MouseEvent) => {
       mouseRef.current.x = e.clientX;
       mouseRef.current.y = e.clientY;
@@ -492,72 +499,77 @@ export default function ConstellationCanvas() {
     <>
       <canvas
         ref={canvasRef}
-        style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}
+        style={preview
+          ? { position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }
+          : { position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }
+        }
       />
 
-      <div className="constellation-controls">
-        <button
-          className="canvas-ctrl-btn"
-          onClick={() => setShowSettings(v => !v)}
-          title="Background settings"
-          style={{ fontSize: '15px' }}
-        >
-          {showSettings ? '✕' : '⚙'}
-        </button>
+      {!preview && (
+        <div className="constellation-controls">
+          <button
+            className="canvas-ctrl-btn"
+            onClick={() => setShowSettings(v => !v)}
+            title="Background settings"
+            style={{ fontSize: '15px' }}
+          >
+            {showSettings ? '✕' : '⚙'}
+          </button>
 
-        {showSettings && (
-          <div className="cs-panel">
-            <div className="cs-title">// Background</div>
+          {showSettings && (
+            <div className="cs-panel">
+              <div className="cs-title">// Background</div>
 
-            <div className="cs-row">
-              <label className="cs-label">Stars <span>{settings.starCount}</span></label>
-              <input type="range" className="cs-slider" min="30" max="200" value={settings.starCount}
-                onChange={e => update('starCount', +e.target.value)} />
-            </div>
-
-            <div className="cs-row">
-              <label className="cs-label">Connect Distance <span>{settings.connectDist}px</span></label>
-              <input type="range" className="cs-slider" min="60" max="400" value={settings.connectDist}
-                onChange={e => update('connectDist', +e.target.value)} />
-            </div>
-
-            <div className="cs-row">
-              <label className="cs-label">Speed <span>{settings.speed.toFixed(1)}×</span></label>
-              <input type="range" className="cs-slider" min="1" max="30" value={Math.round(settings.speed * 10)}
-                onChange={e => update('speed', +e.target.value / 10)} />
-            </div>
-
-            <div className="cs-row">
-              <label className="cs-label">Mouse Radius <span>{settings.mouseRadius}px</span></label>
-              <input type="range" className="cs-slider" min="40" max="300" value={settings.mouseRadius}
-                onChange={e => update('mouseRadius', +e.target.value)} />
-            </div>
-
-            <div className="cs-row">
-              <label className="cs-label">
-                Color <span style={{ color: `hsl(${settings.hue},70%,70%)` }}>●</span>
-              </label>
-              <div className="cs-hue-track">
-                <div className="cs-hue-bar" />
-                <input type="range" className="cs-slider cs-hue-slider" min="0" max="359" value={settings.hue}
-                  onChange={e => update('hue', +e.target.value)} />
+              <div className="cs-row">
+                <label className="cs-label">Stars <span>{settings.starCount}</span></label>
+                <input type="range" className="cs-slider" min="30" max="200" value={settings.starCount}
+                  onChange={e => update('starCount', +e.target.value)} />
               </div>
-            </div>
 
-            <div className="cs-row">
-              <label className="cs-label">Mouse Mode</label>
-              <div className="cs-toggle">
-                <button className={`cs-toggle-btn ${!settings.attract ? 'cs-active' : ''}`}
-                  onClick={() => update('attract', false)}>Repel</button>
-                <button className={`cs-toggle-btn ${settings.attract ? 'cs-active' : ''}`}
-                  onClick={() => update('attract', true)}>Attract</button>
+              <div className="cs-row">
+                <label className="cs-label">Connect Distance <span>{settings.connectDist}px</span></label>
+                <input type="range" className="cs-slider" min="60" max="400" value={settings.connectDist}
+                  onChange={e => update('connectDist', +e.target.value)} />
               </div>
-            </div>
 
-            <div className="cs-hint">click + drag to draw a constellation<br/>grab a star to fling it</div>
-          </div>
-        )}
-      </div>
+              <div className="cs-row">
+                <label className="cs-label">Speed <span>{settings.speed.toFixed(1)}×</span></label>
+                <input type="range" className="cs-slider" min="1" max="30" value={Math.round(settings.speed * 10)}
+                  onChange={e => update('speed', +e.target.value / 10)} />
+              </div>
+
+              <div className="cs-row">
+                <label className="cs-label">Mouse Radius <span>{settings.mouseRadius}px</span></label>
+                <input type="range" className="cs-slider" min="40" max="300" value={settings.mouseRadius}
+                  onChange={e => update('mouseRadius', +e.target.value)} />
+              </div>
+
+              <div className="cs-row">
+                <label className="cs-label">
+                  Color <span style={{ color: `hsl(${settings.hue},70%,70%)` }}>●</span>
+                </label>
+                <div className="cs-hue-track">
+                  <div className="cs-hue-bar" />
+                  <input type="range" className="cs-slider cs-hue-slider" min="0" max="359" value={settings.hue}
+                    onChange={e => update('hue', +e.target.value)} />
+                </div>
+              </div>
+
+              <div className="cs-row">
+                <label className="cs-label">Mouse Mode</label>
+                <div className="cs-toggle">
+                  <button className={`cs-toggle-btn ${!settings.attract ? 'cs-active' : ''}`}
+                    onClick={() => update('attract', false)}>Repel</button>
+                  <button className={`cs-toggle-btn ${settings.attract ? 'cs-active' : ''}`}
+                    onClick={() => update('attract', true)}>Attract</button>
+                </div>
+              </div>
+
+              <div className="cs-hint">click + drag to draw a constellation</div>
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }
