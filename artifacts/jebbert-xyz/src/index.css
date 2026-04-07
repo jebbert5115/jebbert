@@ -156,14 +156,24 @@ body::before {
   border-bottom-color: var(--accent-2);
 }
 
-/* ── Page content fade-in on route change ── */
-@keyframes pageIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0);   }
+/* ── Page content cross-fade on route change ── */
+@keyframes pageFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes pageFadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
 }
 
 .page-fade-in {
-  animation: pageIn 180ms ease-out both;
+  animation: pageFadeIn 150ms ease-out both;
+}
+
+.page-fade-out {
+  animation: pageFadeOut 130ms ease-in both;
+  pointer-events: none;
 }
 
 /* ── Site card (the main card that IS the website) ── */
