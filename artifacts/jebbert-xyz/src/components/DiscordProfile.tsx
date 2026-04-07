@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { Link, useLocation } from 'wouter';
 import { LanyardData } from '../hooks/useLanyard';
 
 const BASE = import.meta.env.BASE_URL;
@@ -18,6 +19,7 @@ interface Props {
   loading: boolean;
   avatarUrl: string;
   avatarFallback: string;
+  children?: React.ReactNode;
 }
 
 interface Tilt {
@@ -28,12 +30,13 @@ interface Tilt {
   active: boolean;
 }
 
-export default function DiscordProfile({ data, loading, avatarUrl, avatarFallback }: Props) {
+export default function DiscordProfile({ data, loading, avatarUrl, avatarFallback, children }: Props) {
   const [avatarErr, setAvatarErr] = useState(false);
   const [decorErr,  setDecorErr]  = useState(false);
   const [clanErr,   setClanErr]   = useState(false);
   const [tilt, setTilt] = useState<Tilt>({ rx: 0, ry: 0, mx: 50, my: 50, active: false });
   const cardRef = useRef<HTMLDivElement>(null);
+  const [location] = useLocation();
 
   const user   = data?.discord_user;
   const status = data?.discord_status ?? 'offline';
@@ -140,6 +143,19 @@ export default function DiscordProfile({ data, loading, avatarUrl, avatarFallbac
           </div>
         ))}
       </div>
+
+      {/* Nav links */}
+      <div className="guns-nav">
+        <Link href="/"        className={`guns-nav-link${location === '/'        ? ' active' : ''}`}>Home</Link>
+        <Link href="/projects" className={`guns-nav-link${location === '/projects' ? ' active' : ''}`}>Projects</Link>
+      </div>
+
+      {/* Activity cards (only rendered if child components return something) */}
+      {children && (
+        <div className="guns-activities">
+          {children}
+        </div>
+      )}
     </div>
   );
 }

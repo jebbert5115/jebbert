@@ -11,24 +11,18 @@ export function SpotifyCard({ data, loading }: SpotifyCardProps) {
 
   useEffect(() => {
     if (!data?.listening_to_spotify || !data.spotify) return;
-
-    const update = () => {
-      setProgress(getSpotifyProgress(data.spotify!.timestamps));
-    };
-
+    const update = () => setProgress(getSpotifyProgress(data.spotify!.timestamps));
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [data]);
 
-  if (loading || !data?.listening_to_spotify || !data.spotify) {
-    return null;
-  }
+  if (loading || !data?.listening_to_spotify || !data.spotify) return null;
 
   const { song, artist, album_art_url } = data.spotify;
 
   return (
-    <div className="activity-card">
+    <div className="guns-activity-item">
       <div className="activity-label">Listening to</div>
       <div className="spotify-card">
         {album_art_url ? (
@@ -36,9 +30,7 @@ export function SpotifyCard({ data, loading }: SpotifyCardProps) {
             className="album-art"
             src={album_art_url}
             alt={`${song} album art`}
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         ) : (
           <div className="album-art-placeholder">♪</div>
@@ -47,10 +39,7 @@ export function SpotifyCard({ data, loading }: SpotifyCardProps) {
           <div className="spotify-song">{song}</div>
           <div className="spotify-artist">{artist}</div>
           <div className="progress-bar-wrapper">
-            <div
-              className="progress-bar-fill"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="progress-bar-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
       </div>

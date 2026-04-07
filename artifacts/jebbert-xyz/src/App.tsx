@@ -1,5 +1,4 @@
 import { Switch, Route, Router as WouterRouter } from "wouter";
-import { Nav } from "@/components/Nav";
 import { MobileWarning } from "@/components/MobileWarning";
 import Home from "@/pages/Home";
 import Projects from "@/pages/Projects";
@@ -32,17 +31,14 @@ function NotFound() {
 
 function Router() {
   return (
-    <div>
-      <Nav />
-      <main className="page-wrapper">
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/projects" component={Projects} />
-          <Route path="/secret" component={Secret} />
-          <Route component={NotFound} />
-        </Switch>
-      </main>
-    </div>
+    <main className="page-wrapper">
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/projects" component={Projects} />
+        <Route path="/secret" component={Secret} />
+        <Route component={NotFound} />
+      </Switch>
+    </main>
   );
 }
 
