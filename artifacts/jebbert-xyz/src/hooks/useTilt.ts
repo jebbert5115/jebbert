@@ -128,15 +128,34 @@ export function useTilt(
 
     const onResize = () => { if (hovered) center = getLayoutCenter(card); };
 
+    const flattenCard = () => {
+      hovered   = false;
+      center    = null;
+      target.dx = 0;
+      target.dy = 0;
+      cancelAnimationFrame(rafId);
+      card.style.transition = 'transform 300ms cubic-bezier(0.23,1,0.32,1), box-shadow 250ms ease';
+      card.style.transform  = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+      card.style.boxShadow  = '';
+      sheen.style.transition = 'opacity 250ms ease-out';
+      sheen.style.opacity    = '0';
+      card.style.setProperty('--px', '0px');
+      card.style.setProperty('--py', '0px');
+    };
+
+    const nav = document.querySelector('.nav') as HTMLElement | null;
+
     card.addEventListener('mouseenter',  onEnter);
     card.addEventListener('mousemove',   onMove);
     card.addEventListener('mouseleave',  onLeave);
+    nav?.addEventListener('mouseenter',  flattenCard);
     window.addEventListener('resize',    onResize);
     return () => {
       cancelAnimationFrame(rafId);
       card.removeEventListener('mouseenter',  onEnter);
       card.removeEventListener('mousemove',   onMove);
       card.removeEventListener('mouseleave',  onLeave);
+      nav?.removeEventListener('mouseenter',  flattenCard);
       window.removeEventListener('resize',    onResize);
     };
   }, [cardRef, sheenRef, enabled]);
