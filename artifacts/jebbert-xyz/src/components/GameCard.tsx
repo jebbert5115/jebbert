@@ -55,25 +55,8 @@ export function GameCard({ data, loading }: GameCardProps) {
 
   useEffect(() => { setIconFailed(false); }, [activity?.name]);
 
-  if (loading) {
-    return (
-      <div className="card">
-        <div className="card-title">Now Playing</div>
-        <div className="spotify-not-listening"><span>loading...</span></div>
-      </div>
-    );
-  }
-
-  if (!activity) {
-    return (
-      <div className="card">
-        <div className="card-title">Now Playing</div>
-        <div className="spotify-not-listening">
-          <span>🎮</span>
-          <span>not playing anything</span>
-        </div>
-      </div>
-    );
+  if (loading || !activity) {
+    return null;
   }
 
   const iconUrl = getGameIconUrl(activity);
@@ -83,8 +66,8 @@ export function GameCard({ data, loading }: GameCardProps) {
     : activity.state ?? null;
 
   return (
-    <div className="card">
-      <div className="card-title">Now Playing</div>
+    <div className="activity-card">
+      <div className="activity-label">Playing</div>
       <div className="spotify-card">
         {iconUrl && !iconFailed ? (
           <img

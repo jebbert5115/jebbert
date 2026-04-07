@@ -21,34 +21,15 @@ export function SpotifyCard({ data, loading }: SpotifyCardProps) {
     return () => clearInterval(interval);
   }, [data]);
 
-  if (loading) {
-    return (
-      <div className="card">
-        <div className="card-title">Now Playing</div>
-        <div className="spotify-not-listening">
-          <span>loading...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!data?.listening_to_spotify || !data.spotify) {
-    return (
-      <div className="card">
-        <div className="card-title">Now Playing</div>
-        <div className="spotify-not-listening">
-          <span>♪</span>
-          <span>not listening to anything</span>
-        </div>
-      </div>
-    );
+  if (loading || !data?.listening_to_spotify || !data.spotify) {
+    return null;
   }
 
   const { song, artist, album_art_url } = data.spotify;
 
   return (
-    <div className="card">
-      <div className="card-title">Now Playing</div>
+    <div className="activity-card">
+      <div className="activity-label">Listening to</div>
       <div className="spotify-card">
         {album_art_url ? (
           <img

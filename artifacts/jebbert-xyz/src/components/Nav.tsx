@@ -11,9 +11,6 @@ export function Nav() {
       <ul className="nav-links">
         <li><Link href="/" className={location === '/' ? 'active' : ''}>Home</Link></li>
         <li><Link href="/projects" className={location === '/projects' ? 'active' : ''}>Projects</Link></li>
-        <li><Link href="/games" className={location === '/games' ? 'active' : ''}>Games</Link></li>
-        <li><Link href="/extras" className={location === '/extras' ? 'active' : ''}>Extras</Link></li>
-        <li><Link href="/screensavers" className={location === '/screensavers' ? 'active' : ''}>Screen Savers</Link></li>
       </ul>
     </nav>
   );
