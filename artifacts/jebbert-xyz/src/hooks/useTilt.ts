@@ -4,6 +4,7 @@ const MAX_TILT  = 12;   // degrees
 const PARALLAX  = 6;    // px offset for avatar counter-move
 const SHEEN_OPQ = 0.28;
 const LERP      = 0.10; // interpolation factor per frame (~60fps)
+const INNER     = 0.88; // active tilt zone — outer 12% of each edge is a dead band
 
 const SHEEN_COLORS = [
   'rgba(255, 80,  160, 0.22)',
@@ -91,10 +92,15 @@ export function useTilt(
       rafId = requestAnimationFrame(tick);
     };
 
+    // Map raw axis value to tilt target, with an edge dead band.
+    // Outer INNER% of the card returns 0; inner zone remaps to [-1, 1].
+    const mapAxis = (raw: number): number =>
+      Math.abs(raw) >= INNER ? 0 : clamp(raw / INNER);
+
     const onMove = (e: MouseEvent) => {
       if (!center) return;
-      target.dx = clamp((e.clientX - center.cx) / center.hw);
-      target.dy = clamp((e.clientY - center.cy) / center.hh);
+      target.dx = mapAxis((e.clientX - center.cx) / center.hw);
+      target.dy = mapAxis((e.clientY - center.cy) / center.hh);
     };
 
     const onLeave = () => {
