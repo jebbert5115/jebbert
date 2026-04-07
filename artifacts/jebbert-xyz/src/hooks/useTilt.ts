@@ -1,8 +1,9 @@
 import { RefObject, useEffect } from 'react';
 
-const MAX_TILT  = 12;  // degrees
-const PARALLAX  = 6;   // px offset for avatar counter-move
+const MAX_TILT  = 12;   // degrees
+const PARALLAX  = 6;    // px offset for avatar counter-move
 const SHEEN_OPQ = 0.28;
+const LERP      = 0.10; // interpolation factor per frame (~60fps)
 
 const SHEEN_COLORS = [
   'rgba(255, 80,  160, 0.22)',
@@ -22,36 +23,68 @@ export function useTilt(
     const sheen = sheenRef.current;
     if (!card || !sheen) return;
 
-    const onMove = (e: MouseEvent) => {
-      const rect = card.getBoundingClientRect();
-      const cx = rect.left + rect.width  / 2;
-      const cy = rect.top  + rect.height / 2;
+    // Mutable state — never triggers re-renders
+    let rafId      = 0;
+    let isHovered  = false;
+    let cachedRect: DOMRect | null = null;
 
-      const dx = (e.clientX - cx) / (rect.width  / 2);  // -1 to 1
-      const dy = (e.clientY - cy) / (rect.height / 2);  // -1 to 1
+    const target  = { dx: 0, dy: 0 };
+    const current = { dx: 0, dy: 0 };
 
-      const rotX = -dy * MAX_TILT;
-      const rotY =  dx * MAX_TILT;
+    // rAF loop: lerp current → target and write to DOM
+    const tick = () => {
+      if (!isHovered) return;
 
-      // Map cursor quadrant → conic start angle (0-360)
-      const sheenAngle = ((dx + dy + 2) / 4) * 360;
+      current.dx += (target.dx - current.dx) * LERP;
+      current.dy += (target.dy - current.dy) * LERP;
 
-      // Apply tilt (no transition while tracking for immediate response)
-      card.style.transition = 'box-shadow 200ms ease';
-      card.style.transform  = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.02)`;
-      card.style.boxShadow  = `0 ${20 + Math.abs(dy) * 16}px ${60 + Math.abs(dy) * 20}px rgba(0,0,0,0.55), 0 0 32px rgba(157,78,221,0.2)`;
+      const rotX       = -current.dy * MAX_TILT;
+      const rotY       =  current.dx * MAX_TILT;
+      const sheenAngle = ((current.dx + current.dy + 2) / 4) * 360;
+      const absDy      = Math.abs(current.dy);
 
-      // Conic shimmer sweep
+      card.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.02)`;
+      card.style.boxShadow = `0 ${20 + absDy * 16}px ${60 + absDy * 20}px rgba(0,0,0,0.55), 0 0 32px rgba(157,78,221,0.2)`;
+
       sheen.style.background = `conic-gradient(from ${sheenAngle}deg at 50% 50%, ${SHEEN_COLORS})`;
       sheen.style.opacity    = String(SHEEN_OPQ);
       sheen.style.transition = '';
 
-      // Avatar parallax via CSS vars (cascade to children)
-      card.style.setProperty('--px', `${-dx * PARALLAX}px`);
-      card.style.setProperty('--py', `${-dy * PARALLAX}px`);
+      card.style.setProperty('--px', `${-current.dx * PARALLAX}px`);
+      card.style.setProperty('--py', `${-current.dy * PARALLAX}px`);
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    // Cache the untransformed rect BEFORE any tilt is applied
+    const onEnter = () => {
+      isHovered = true;
+      // Clear any leftover transition so the rect is unaffected
+      card.style.transition = '';
+      cachedRect = card.getBoundingClientRect();
+      current.dx = 0;
+      current.dy = 0;
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(tick);
+    };
+
+    // Update target only — rAF loop applies the actual values
+    const onMove = (e: MouseEvent) => {
+      if (!cachedRect) return;
+      const cx = cachedRect.left + cachedRect.width  / 2;
+      const cy = cachedRect.top  + cachedRect.height / 2;
+      // Clamp to [-1, 1] so corners never overshoot
+      target.dx = Math.max(-1, Math.min(1, (e.clientX - cx) / (cachedRect.width  / 2)));
+      target.dy = Math.max(-1, Math.min(1, (e.clientY - cy) / (cachedRect.height / 2)));
     };
 
     const onLeave = () => {
+      isHovered = false;
+      cancelAnimationFrame(rafId);
+      target.dx  = 0;
+      target.dy  = 0;
+      cachedRect = null;
+
       card.style.transition = 'transform 500ms cubic-bezier(0.23,1,0.32,1), box-shadow 400ms ease';
       card.style.transform  = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)';
       card.style.boxShadow  = '';
@@ -63,10 +96,13 @@ export function useTilt(
       card.style.setProperty('--py', '0px');
     };
 
-    card.addEventListener('mousemove', onMove);
+    card.addEventListener('mouseenter', onEnter);
+    card.addEventListener('mousemove',  onMove);
     card.addEventListener('mouseleave', onLeave);
     return () => {
-      card.removeEventListener('mousemove', onMove);
+      cancelAnimationFrame(rafId);
+      card.removeEventListener('mouseenter', onEnter);
+      card.removeEventListener('mousemove',  onMove);
       card.removeEventListener('mouseleave', onLeave);
     };
   }, [cardRef, sheenRef]);
