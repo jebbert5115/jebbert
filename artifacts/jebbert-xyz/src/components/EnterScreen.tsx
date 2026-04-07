@@ -18,17 +18,16 @@ const BOOT: Line[] = [
   { type: 'cmd',     text: 'initializing kernel...',                        delay: 420  },
   { type: 'ok',      text: 'loading system modules',                        delay: 780  },
   { type: 'ok',      text: 'establishing network link',                     delay: 1060 },
-  { type: 'ok',      text: 'discord presence API',                          delay: 1380 },
-  { type: 'ok',      text: 'lanyard websocket',                             delay: 1640 },
-  { type: 'ok',      text: 'constellation renderer',                        delay: 1880 },
-  { type: 'empty',   text: '',                                              delay: 2050 },
-  { type: 'success', text: 'all systems nominal.',                          delay: 2160 },
-  { type: 'empty',   text: '',                                              delay: 2340 },
-  { type: 'success', text: 'welcome, operator.',                            delay: 2460 },
-  { type: 'empty',   text: '',                                              delay: 2620 },
+  { type: 'ok',      text: 'lanyard websocket',                             delay: 1340 },
+  { type: 'ok',      text: 'constellation renderer',                        delay: 1580 },
+  { type: 'empty',   text: '',                                              delay: 1760 },
+  { type: 'success', text: 'all systems nominal.',                          delay: 1860 },
+  { type: 'empty',   text: '',                                              delay: 2040 },
+  { type: 'success', text: 'welcome, operator.',                            delay: 2160 },
+  { type: 'empty',   text: '',                                              delay: 2320 },
 ];
 
-const PROMPT_DELAY = 3000;
+const PROMPT_DELAY = 2700;
 
 function BootLine({ line }: { line: Line }) {
   if (line.type === 'empty') return <div className="et-line">&nbsp;</div>;
@@ -93,7 +92,7 @@ export default function EnterScreen({ onEnter, onExiting }: Props) {
       className={`enter-overlay${exiting ? ' enter-exiting' : ''}`}
       onClick={handleEnter}
     >
-      <div className="enter-window" onClick={e => e.stopPropagation()}>
+      <div className="enter-window" onClick={handleEnter}>
 
         {/* Title bar */}
         <div className="enter-titlebar">
