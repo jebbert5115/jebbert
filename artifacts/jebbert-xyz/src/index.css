@@ -182,11 +182,7 @@ body::after {
   overflow: hidden;
   position: relative;
   will-change: transform;
-  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
-}
-
-.site-card--tilted {
-  box-shadow: 0 24px 70px rgba(0,0,0,0.55), 0 0 28px rgba(157,78,221,0.12);
+  /* transform & transition managed by useTilt hook */
 }
 
 /* Page content area inside the card */
@@ -1891,6 +1887,9 @@ canvas.flow-field-canvas {
   overflow: visible;
   vertical-align: top;
   flex-shrink: 0;
+  transform: translate(var(--px, 0px), var(--py, 0px));
+  transition: transform 300ms ease;
+  will-change: transform;
 }
 
 .dp-avatar {
@@ -2380,29 +2379,15 @@ canvas.flow-field-canvas {
   box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 24px rgba(157,78,221,0.15);
 }
 
-/* Holographic sheen overlay — tilt-driven, radiates from the lit face */
+/* Conic shimmer overlay — background & opacity driven by useTilt hook */
 .guns-sheen {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s ease-out;
-  background:
-    radial-gradient(
-      ellipse 100% 80% at var(--sheen-x, 50%) var(--sheen-y, 50%),
-      rgba(255, 255, 255, 0.09)  0%,
-      rgba(180, 80,  255, 0.13) 25%,
-      rgba(0,   210, 255, 0.10) 50%,
-      rgba(255, 80,  160, 0.06) 70%,
-      transparent 90%
-    );
   mix-blend-mode: screen;
   z-index: 10;
-}
-
-.guns-sheen--visible {
-  opacity: 1;
 }
 
 /* Banner */
