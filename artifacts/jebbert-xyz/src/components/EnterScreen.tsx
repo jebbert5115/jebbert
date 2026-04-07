@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 
 interface Props {
-  onEnter: () => void;
+  onEnter:   () => void;
+  onExiting: () => void;
 }
 
 interface Line {
@@ -18,7 +19,7 @@ const BOOT: Line[] = [
   { type: 'ok',      text: 'loading system modules',                        delay: 780  },
   { type: 'ok',      text: 'establishing network link',                     delay: 1060 },
   { type: 'ok',      text: 'discord presence API',                          delay: 1380 },
-  { type: 'ok',      text: 'lanyard v3 websocket',                          delay: 1640 },
+  { type: 'ok',      text: 'lanyard websocket',                             delay: 1640 },
   { type: 'ok',      text: 'constellation renderer',                        delay: 1880 },
   { type: 'empty',   text: '',                                              delay: 2050 },
   { type: 'success', text: 'all systems nominal.',                          delay: 2160 },
@@ -60,7 +61,7 @@ function BootLine({ line }: { line: Line }) {
   );
 }
 
-export default function EnterScreen({ onEnter }: Props) {
+export default function EnterScreen({ onEnter, onExiting }: Props) {
   const [visible,    setVisible]    = useState(0);
   const [showPrompt, setShowPrompt] = useState(false);
   const [exiting,    setExiting]    = useState(false);
@@ -77,8 +78,9 @@ export default function EnterScreen({ onEnter }: Props) {
   const handleEnter = useCallback(() => {
     if (!showPrompt || exiting) return;
     setExiting(true);
+    onExiting();
     setTimeout(onEnter, 700);
-  }, [showPrompt, exiting, onEnter]);
+  }, [showPrompt, exiting, onEnter, onExiting]);
 
   useEffect(() => {
     const handler = () => handleEnter();

@@ -104,6 +104,18 @@ body::before {
   text-shadow: 0 0 8px var(--accent-2);
 }
 
+/* ── Site reveal — fades in after terminal enter screen ── */
+.site-reveal {
+  opacity: 0;
+  transition: opacity 0.55s ease;
+  pointer-events: none;
+}
+
+.site-reveal.site-revealed {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 /* ── Layout ── */
 .page-wrapper {
   position: relative;
