@@ -143,23 +143,30 @@ export function useTilt(
       card.style.setProperty('--py', '0px');
     };
 
-    const onDocOver = (e: MouseEvent) => {
-      if (hovered && (e.target as Element | null)?.closest?.('.nav')) {
-        flattenCard();
-      }
+    const reEngage = () => {
+      hovered    = true;
+      center     = getLayoutCenter(card);
+      current.dx = 0;
+      current.dy = 0;
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(tick);
     };
+
+    const tabsEl = card.querySelector('.card-tabs') as HTMLElement | null;
 
     card.addEventListener('mouseenter',  onEnter);
     card.addEventListener('mousemove',   onMove);
     card.addEventListener('mouseleave',  onLeave);
-    document.addEventListener('mouseover', onDocOver, true);
+    tabsEl?.addEventListener('mouseenter', flattenCard);
+    tabsEl?.addEventListener('mouseleave', reEngage);
     window.addEventListener('resize',    onResize);
     return () => {
       cancelAnimationFrame(rafId);
       card.removeEventListener('mouseenter',  onEnter);
       card.removeEventListener('mousemove',   onMove);
       card.removeEventListener('mouseleave',  onLeave);
-      document.removeEventListener('mouseover', onDocOver, true);
+      tabsEl?.removeEventListener('mouseenter', flattenCard);
+      tabsEl?.removeEventListener('mouseleave', reEngage);
       window.removeEventListener('resize',    onResize);
     };
   }, [cardRef, sheenRef, enabled]);
