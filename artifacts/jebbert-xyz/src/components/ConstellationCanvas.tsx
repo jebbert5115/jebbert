@@ -12,7 +12,7 @@ interface Settings {
 function getDefaults(): Settings {
   const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 768;
   return {
-    starCount:   30,
+    starCount:   isMobile ? 30 : 90,
     connectDist: 155,
     speed:       1.0,
     hue:         215,

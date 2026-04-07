@@ -1684,7 +1684,7 @@ canvas.flow-field-canvas {
 /* ── Constellation settings panel ── */
 .constellation-controls {
   position: fixed;
-  top: 96px;
+  top: 16px;
   right: 16px;
   display: flex;
   flex-direction: column;

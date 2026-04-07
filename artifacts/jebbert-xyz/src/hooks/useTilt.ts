@@ -2,15 +2,15 @@ import { RefObject, useEffect } from 'react';
 
 const MAX_TILT  = 12;  // degrees
 const PARALLAX  = 6;   // px offset for avatar counter-move
-const SHEEN_OPQ = 0.55;
+const SHEEN_OPQ = 0.28;
 
 const SHEEN_COLORS = [
-  'rgba(255, 80,  160, 0.45)',
-  'rgba(180, 80,  255, 0.45)',
-  'rgba(0,   210, 255, 0.40)',
-  'rgba(80,  255, 200, 0.35)',
-  'rgba(255, 220, 80,  0.35)',
-  'rgba(255, 80,  160, 0.45)',
+  'rgba(255, 80,  160, 0.22)',
+  'rgba(180, 80,  255, 0.22)',
+  'rgba(0,   210, 255, 0.18)',
+  'rgba(80,  255, 200, 0.16)',
+  'rgba(255, 220, 80,  0.16)',
+  'rgba(255, 80,  160, 0.22)',
 ].join(', ');
 
 export function useTilt(
