@@ -1,12 +1,10 @@
 import { Router as WouterRouter } from "wouter";
-import { MobileWarning } from "@/components/MobileWarning";
 import ConstellationCanvas from "@/components/ConstellationCanvas";
 import { SiteLayout } from "@/components/SiteLayout";
 
 function App() {
   return (
     <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-      <MobileWarning />
       <ConstellationCanvas />
       <main className="page-wrapper">
         <SiteLayout />

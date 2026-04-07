@@ -9,13 +9,13 @@ import Projects from '../pages/Projects';
 import Secret from '../pages/Secret';
 
 interface Tilt {
-  rx: number; ry: number; mx: number; my: number; active: boolean;
+  rx: number; ry: number; active: boolean;
 }
 
 export function SiteLayout() {
   const [location] = useLocation();
   const { data, loading, avatarUrl, avatarFallback } = useLanyard();
-  const [tilt, setTilt] = useState<Tilt>({ rx: 0, ry: 0, mx: 50, my: 50, active: false });
+  const [tilt, setTilt] = useState<Tilt>({ rx: 0, ry: 0, active: false });
   const cardRef = useRef<HTMLDivElement>(null);
 
   const hasSpotify = !loading && !!data?.listening_to_spotify && !!data.spotify;
@@ -26,12 +26,17 @@ export function SiteLayout() {
     const rect = cardRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top)  / rect.height;
-    setTilt({ rx: (y - 0.5) * -10, ry: (x - 0.5) * 10, mx: x * 100, my: y * 100, active: true });
+    setTilt({ rx: (y - 0.5) * -10, ry: (x - 0.5) * 10, active: true });
   }, []);
 
   const handleMouseLeave = useCallback(() => {
-    setTilt({ rx: 0, ry: 0, mx: 50, my: 50, active: false });
+    setTilt({ rx: 0, ry: 0, active: false });
   }, []);
+
+  // Sheen origin: derived from tilt — opposite of tilt direction (where light hits)
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+  const sheenX = clamp(50 - tilt.ry * 3, 15, 85);
+  const sheenY = clamp(50 + tilt.rx * 3, 15, 85);
 
   return (
     <div className="site-frame">
@@ -48,8 +53,8 @@ export function SiteLayout() {
         className={`site-card${tilt.active ? ' site-card--tilted' : ''}`}
         style={{
           transform: `perspective(1400px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
-          '--mx': `${tilt.mx}%`,
-          '--my': `${tilt.my}%`,
+          '--sheen-x': `${sheenX}%`,
+          '--sheen-y': `${sheenY}%`,
         } as React.CSSProperties}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}

@@ -2380,21 +2380,23 @@ canvas.flow-field-canvas {
   box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 24px rgba(157,78,221,0.15);
 }
 
-/* Holographic sheen overlay */
+/* Holographic sheen overlay — tilt-driven, radiates from the lit face */
 .guns-sheen {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.25s ease-out;
-  background: radial-gradient(
-    ellipse 60% 50% at var(--mx, 50%) var(--my, 50%),
-    rgba(180, 80, 255, 0.18) 0%,
-    rgba(0, 210, 255, 0.12) 45%,
-    rgba(255, 80, 160, 0.08) 70%,
-    transparent 100%
-  );
+  transition: opacity 0.35s ease-out;
+  background:
+    radial-gradient(
+      ellipse 100% 80% at var(--sheen-x, 50%) var(--sheen-y, 50%),
+      rgba(255, 255, 255, 0.09)  0%,
+      rgba(180, 80,  255, 0.13) 25%,
+      rgba(0,   210, 255, 0.10) 50%,
+      rgba(255, 80,  160, 0.06) 70%,
+      transparent 90%
+    );
   mix-blend-mode: screen;
   z-index: 10;
 }
