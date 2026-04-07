@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useLanyard } from '../hooks/useLanyard';
 import { useTilt } from '../hooks/useTilt';
 import DiscordProfile from './DiscordProfile';
@@ -69,6 +69,21 @@ export function SiteLayout() {
             <GameCard    data={data} loading={loading} />
           </div>
         )}
+
+        <div className="card-tabs">
+          <Link
+            href="/"
+            className={`card-tab${!location.startsWith('/projects') && !location.startsWith('/secret') ? ' active' : ''}`}
+          >
+            Home
+          </Link>
+          <Link
+            href="/projects"
+            className={`card-tab${location.startsWith('/projects') ? ' active' : ''}`}
+          >
+            Projects
+          </Link>
+        </div>
 
         <div key={contentKey} className={contentClass}>
           {renderPage(displayedLoc)}

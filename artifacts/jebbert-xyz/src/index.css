@@ -320,6 +320,44 @@ body::before {
   padding: 0;
 }
 
+/* ── Card navigation tabs ── */
+.card-tabs {
+  display: flex;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.card-tab {
+  flex: 1;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-accent);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  text-align: center;
+  cursor: pointer;
+  transition: color 0.18s, border-color 0.18s, text-shadow 0.18s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-tab:hover {
+  color: var(--accent-2);
+  text-shadow: 0 0 8px var(--accent-2);
+}
+
+.card-tab.active {
+  color: var(--accent-2);
+  border-bottom-color: var(--accent-2);
+  text-shadow: 0 0 8px var(--accent-2);
+}
+
 /* ── Discord-style profile section ── */
 .dp-discord {
   display: flex;
@@ -1691,6 +1729,15 @@ canvas.flow-field-canvas {
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
+  html {
+    overflow-y: auto;
+  }
+
+  body {
+    overflow-y: auto;
+    cursor: auto;
+  }
+
   .home-layout {
     grid-template-columns: 1fr;
     min-height: auto;
