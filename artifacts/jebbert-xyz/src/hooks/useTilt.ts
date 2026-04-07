@@ -1,11 +1,10 @@
 import { RefObject, useEffect } from 'react';
 
-const MAX_TILT   = 12;    // degrees
-const PARALLAX   = 6;     // px offset for avatar counter-move
-const SHEEN_OPQ  = 0.28;
-const LERP       = 0.10;  // interpolation factor per frame (~60fps)
-const INNER      = 0.88;  // active tilt zone — outer 12% of each edge is a dead band
-const FREEZE_MS  = 480;   // ms to pause tilt after navigation
+const MAX_TILT  = 12;
+const PARALLAX  = 6;
+const SHEEN_OPQ = 0.28;
+const LERP      = 0.10;
+const INNER     = 0.88;
 
 const SHEEN_COLORS = [
   'rgba(255, 80,  160, 0.22)',
@@ -37,19 +36,16 @@ function getLayoutCenter(card: HTMLElement): Center {
 }
 
 export function useTilt(
-  cardRef:    RefObject<HTMLDivElement | null>,
-  sheenRef:   RefObject<HTMLDivElement | null>,
-  /** Output ref — caller writes nothing; hook populates .current with freeze() */
-  freezeRef?: RefObject<(() => void) | null>,
+  cardRef:  RefObject<HTMLDivElement | null>,
+  sheenRef: RefObject<HTMLDivElement | null>,
 ) {
   useEffect(() => {
     const card  = cardRef.current;
     const sheen = sheenRef.current;
     if (!card || !sheen) return;
 
-    let rafId       = 0;
-    let hovered     = false;
-    let frozenUntil = 0;
+    let rafId   = 0;
+    let hovered = false;
     let center: Center | null = null;
 
     const target  = { dx: 0, dy: 0 };
@@ -57,33 +53,8 @@ export function useTilt(
 
     const clamp = (v: number) => Math.max(-1, Math.min(1, v));
 
-    const applyFlat = (withTransition: boolean) => {
-      if (withTransition) {
-        card.style.transition  = 'transform 350ms cubic-bezier(0.23,1,0.32,1), box-shadow 300ms ease';
-        sheen.style.transition = 'opacity 250ms ease-out';
-      } else {
-        card.style.transition  = '';
-        sheen.style.transition = '';
-      }
-      card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
-      card.style.boxShadow = '';
-      sheen.style.opacity  = '0';
-      card.style.setProperty('--px', '0px');
-      card.style.setProperty('--py', '0px');
-    };
-
-    // rAF loop — lerps current toward target and writes to DOM
     const tick = () => {
       if (!hovered) return;
-
-      // During freeze: keep flat and wait
-      if (Date.now() < frozenUntil) {
-        rafId = requestAnimationFrame(tick);
-        return;
-      }
-
-      // First tick after unfreeze: re-cache center for new card dimensions
-      if (!center) center = getLayoutCenter(card);
 
       current.dx += (target.dx - current.dx) * LERP;
       current.dy += (target.dy - current.dy) * LERP;
@@ -108,8 +79,6 @@ export function useTilt(
     };
 
     const onEnter = () => {
-      // Ignore mouseenter during freeze (card is still settling)
-      if (Date.now() < frozenUntil) return;
       hovered    = true;
       center     = getLayoutCenter(card);
       current.dx = 0;
@@ -122,7 +91,7 @@ export function useTilt(
       Math.abs(raw) >= INNER ? 0 : clamp(raw / INNER);
 
     const onMove = (e: MouseEvent) => {
-      if (!center || Date.now() < frozenUntil) return;
+      if (!center) return;
       target.dx = mapAxis((e.clientX - center.cx) / center.hw);
       target.dy = mapAxis((e.clientY - center.cy) / center.hh);
     };
@@ -133,20 +102,19 @@ export function useTilt(
       target.dx = 0;
       target.dy = 0;
       cancelAnimationFrame(rafId);
-      applyFlat(true);
+
+      card.style.transition = 'transform 500ms cubic-bezier(0.23,1,0.32,1), box-shadow 400ms ease';
+      card.style.transform  = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+      card.style.boxShadow  = '';
+
+      sheen.style.transition = 'opacity 350ms ease-out';
+      sheen.style.opacity    = '0';
+
+      card.style.setProperty('--px', '0px');
+      card.style.setProperty('--py', '0px');
     };
 
     const onResize = () => { if (hovered) center = getLayoutCenter(card); };
-
-    // Expose freeze() so SiteLayout can call it on navigation
-    const freeze = () => {
-      frozenUntil = Date.now() + FREEZE_MS;
-      target.dx   = 0;
-      target.dy   = 0;
-      center      = null; // will re-cache from new dimensions after thaw
-      applyFlat(true);
-    };
-    if (freezeRef) freezeRef.current = freeze;
 
     card.addEventListener('mouseenter',  onEnter);
     card.addEventListener('mousemove',   onMove);
@@ -154,11 +122,10 @@ export function useTilt(
     window.addEventListener('resize',    onResize);
     return () => {
       cancelAnimationFrame(rafId);
-      if (freezeRef) freezeRef.current = null;
       card.removeEventListener('mouseenter',  onEnter);
       card.removeEventListener('mousemove',   onMove);
       card.removeEventListener('mouseleave',  onLeave);
       window.removeEventListener('resize',    onResize);
     };
-  }, [cardRef, sheenRef, freezeRef]);
+  }, [cardRef, sheenRef]);
 }

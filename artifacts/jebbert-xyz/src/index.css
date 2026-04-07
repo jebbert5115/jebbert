@@ -125,55 +125,171 @@ body::before {
   max-width: 680px;
 }
 
-/* ── Nav tabs inside card ── */
-.card-nav {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-  padding: 0 20px;
+/* ── Page transition animations (slide + spring pop) ── */
+@keyframes pageExit {
+  from { opacity: 1; transform: translateY(0)     scale(1);    }
+  to   { opacity: 0; transform: translateY(-6px)  scale(0.98); }
 }
 
-.card-nav-tab {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  text-decoration: none;
-  padding: 10px 16px;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: color 0.15s ease, border-color 0.15s ease;
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+.page-exit {
+  animation: pageExit 80ms ease-in both;
+  pointer-events: none;
+}
+
+.page-enter {
+  animation: pageEnter 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ── Enter / splash screen ── */
+.enter-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #07070d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity 0.65s ease, transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enter-overlay.enter-exiting {
+  opacity: 0;
+  transform: scale(1.03);
+  pointer-events: none;
+}
+
+.enter-window {
+  width: min(540px, 92vw);
+  background: #0d0d16;
+  border: 1px solid rgba(6, 182, 212, 0.22);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 1px rgba(6, 182, 212, 0.08),
+    0 24px 80px rgba(0, 0, 0, 0.7),
+    0 0 60px rgba(6, 182, 212, 0.06);
+  overflow: hidden;
+  cursor: default;
+}
+
+.enter-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #111120;
+  border-bottom: 1px solid rgba(6, 182, 212, 0.12);
   user-select: none;
 }
 
-.card-nav-tab:hover {
-  color: var(--text);
+.enter-dots {
+  display: flex;
+  gap: 6px;
 }
 
-.card-nav-tab.active {
+.et-dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+.et-dot-red    { background: #ff5f57; }
+.et-dot-yellow { background: #febc2e; }
+.et-dot-green  { background: #28c840; }
+
+.enter-title {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: rgba(100, 116, 139, 0.9);
+  letter-spacing: 0.04em;
+  margin-left: 4px;
+}
+
+.enter-body {
+  padding: 20px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 240px;
+}
+
+.et-line {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #94a3b8;
+  white-space: pre;
+}
+
+.et-header {
   color: var(--accent-2);
-  border-bottom-color: var(--accent-2);
+  font-weight: 500;
+  letter-spacing: 0.06em;
 }
 
-/* ── Page content cross-fade on route change ── */
-@keyframes pageFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+.et-sep {
+  color: rgba(6, 182, 212, 0.2);
+  font-size: 11px;
 }
 
-@keyframes pageFadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+.et-ps {
+  color: rgba(6, 182, 212, 0.6);
 }
 
-.page-fade-in {
-  animation: pageFadeIn 110ms ease-out both;
+.et-dollar {
+  color: var(--accent-2);
+  font-weight: 500;
 }
 
-.page-fade-out {
-  animation: pageFadeOut 80ms ease-in both;
-  pointer-events: none;
+.et-txt {
+  color: #64748b;
+}
+
+.et-ok {
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.et-success {
+  color: #e2e8f0;
+}
+
+.et-prompt-line {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.et-prompt-text {
+  color: var(--accent-2);
+  animation: promptPulse 2s ease-in-out infinite;
+}
+
+@keyframes promptPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+.et-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: var(--accent-2);
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: cursorBlink 1s step-end infinite;
+  border-radius: 1px;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 /* ── Site card (the main card that IS the website) ── */
@@ -2522,7 +2638,19 @@ canvas.flow-field-canvas {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   transition: background 0.15s;
+  animation: rowSlideIn 300ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
+
+@keyframes rowSlideIn {
+  from { opacity: 0; transform: translateX(-14px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.project-row:nth-child(1) { animation-delay:  30ms; }
+.project-row:nth-child(2) { animation-delay:  80ms; }
+.project-row:nth-child(3) { animation-delay: 130ms; }
+.project-row:nth-child(4) { animation-delay: 180ms; }
+.project-row:nth-child(5) { animation-delay: 230ms; }
 
 .project-row:last-child {
   border-bottom: none;
