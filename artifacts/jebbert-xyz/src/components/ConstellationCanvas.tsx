@@ -394,21 +394,6 @@ export default function ConstellationCanvas({ preview = false }: { preview?: boo
         ctx.restore();
       }
 
-      // ── Cursor glow ───────────────────────────────────────
-      if (mActive) {
-        ctx.save();
-        ctx.shadowBlur  = 18;
-        ctx.shadowColor = `hsl(${hue},100%,84%)`;
-        const cp = 0.8 + 0.2 * Math.sin(ts * 0.004);
-        const cg = ctx.createRadialGradient(mx, my, 0, mx, my, 14);
-        cg.addColorStop(0, `hsla(${hue},100%,100%,${cp})`);
-        cg.addColorStop(1, `hsla(${hue},88%,80%,0)`);
-        ctx.beginPath();
-        ctx.arc(mx, my, 14, 0, Math.PI * 2);
-        ctx.fillStyle = cg;
-        ctx.fill();
-        ctx.restore();
-      }
 
       animId = requestAnimationFrame(draw);
     };
