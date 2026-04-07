@@ -38,11 +38,23 @@ function getLayoutCenter(card: HTMLElement): Center {
 export function useTilt(
   cardRef:  RefObject<HTMLDivElement | null>,
   sheenRef: RefObject<HTMLDivElement | null>,
+  enabled   = true,
 ) {
   useEffect(() => {
     const card  = cardRef.current;
     const sheen = sheenRef.current;
     if (!card || !sheen) return;
+
+    if (!enabled) {
+      card.style.transition  = 'transform 400ms cubic-bezier(0.23,1,0.32,1), box-shadow 300ms ease';
+      card.style.transform   = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+      card.style.boxShadow   = '';
+      sheen.style.transition = 'opacity 250ms ease-out';
+      sheen.style.opacity    = '0';
+      card.style.setProperty('--px', '0px');
+      card.style.setProperty('--py', '0px');
+      return;
+    }
 
     let rafId   = 0;
     let hovered = false;
@@ -127,5 +139,5 @@ export function useTilt(
       card.removeEventListener('mouseleave',  onLeave);
       window.removeEventListener('resize',    onResize);
     };
-  }, [cardRef, sheenRef]);
+  }, [cardRef, sheenRef, enabled]);
 }

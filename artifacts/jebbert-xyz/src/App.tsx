@@ -9,7 +9,7 @@ function NavBar() {
   const isHome = !location.startsWith('/projects') && !location.startsWith('/secret');
   return (
     <nav className="nav">
-      <a href={import.meta.env.BASE_URL} className="nav-logo">JEBBERT</a>
+      <a href={import.meta.env.BASE_URL} className="nav-logo">jebbert.xyz</a>
       <ul className="nav-links">
         <li>
           <Link href="/" className={isHome ? 'active' : ''}>Home</Link>
