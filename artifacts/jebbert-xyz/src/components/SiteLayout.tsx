@@ -1,0 +1,87 @@
+import { useRef, useState, useCallback } from 'react';
+import { Link, useLocation, Switch, Route } from 'wouter';
+import { useLanyard } from '../hooks/useLanyard';
+import DiscordProfile from './DiscordProfile';
+import { SpotifyCard } from './SpotifyCard';
+import { GameCard } from './GameCard';
+import Home from '../pages/Home';
+import Projects from '../pages/Projects';
+import Secret from '../pages/Secret';
+
+interface Tilt {
+  rx: number; ry: number; mx: number; my: number; active: boolean;
+}
+
+export function SiteLayout() {
+  const [location] = useLocation();
+  const { data, loading, avatarUrl, avatarFallback } = useLanyard();
+  const [tilt, setTilt] = useState<Tilt>({ rx: 0, ry: 0, mx: 50, my: 50, active: false });
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const hasSpotify = !loading && !!data?.listening_to_spotify && !!data.spotify;
+  const hasGame    = !loading && !!data?.activities?.find(a => a.type === 0);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top)  / rect.height;
+    setTilt({ rx: (y - 0.5) * -10, ry: (x - 0.5) * 10, mx: x * 100, my: y * 100, active: true });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setTilt({ rx: 0, ry: 0, mx: 50, my: 50, active: false });
+  }, []);
+
+  return (
+    <div className="site-frame">
+
+      {/* Nav tabs – above the card */}
+      <div className="site-tabs">
+        <Link href="/"         className={`site-tab${location === '/'         ? ' active' : ''}`}>Home</Link>
+        <Link href="/projects" className={`site-tab${location === '/projects' ? ' active' : ''}`}>Projects</Link>
+      </div>
+
+      {/* The main card */}
+      <div
+        ref={cardRef}
+        className={`site-card${tilt.active ? ' site-card--tilted' : ''}`}
+        style={{
+          transform: `perspective(1400px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)`,
+          '--mx': `${tilt.mx}%`,
+          '--my': `${tilt.my}%`,
+        } as React.CSSProperties}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        {/* Holographic sheen */}
+        <div className={`guns-sheen${tilt.active ? ' guns-sheen--visible' : ''}`} />
+
+        {/* Profile header – always visible */}
+        <DiscordProfile
+          data={data}
+          loading={loading}
+          avatarUrl={avatarUrl}
+          avatarFallback={avatarFallback}
+        />
+
+        {/* Activity rows – only when active */}
+        {(hasSpotify || hasGame) && (
+          <div className="guns-activities">
+            <SpotifyCard data={data} loading={loading} />
+            <GameCard    data={data} loading={loading} />
+          </div>
+        )}
+
+        {/* Page content */}
+        <div className="site-content">
+          <Switch>
+            <Route path="/"         component={Home} />
+            <Route path="/projects" component={Projects} />
+            <Route path="/secret"   component={Secret} />
+          </Switch>
+        </div>
+      </div>
+    </div>
+  );
+}
