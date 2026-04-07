@@ -143,19 +143,23 @@ export function useTilt(
       card.style.setProperty('--py', '0px');
     };
 
-    const nav = document.querySelector('.nav') as HTMLElement | null;
+    const onDocOver = (e: MouseEvent) => {
+      if (hovered && (e.target as Element | null)?.closest?.('.nav')) {
+        flattenCard();
+      }
+    };
 
     card.addEventListener('mouseenter',  onEnter);
     card.addEventListener('mousemove',   onMove);
     card.addEventListener('mouseleave',  onLeave);
-    nav?.addEventListener('mouseenter',  flattenCard);
+    document.addEventListener('mouseover', onDocOver, true);
     window.addEventListener('resize',    onResize);
     return () => {
       cancelAnimationFrame(rafId);
       card.removeEventListener('mouseenter',  onEnter);
       card.removeEventListener('mousemove',   onMove);
       card.removeEventListener('mouseleave',  onLeave);
-      nav?.removeEventListener('mouseenter',  flattenCard);
+      document.removeEventListener('mouseover', onDocOver, true);
       window.removeEventListener('resize',    onResize);
     };
   }, [cardRef, sheenRef, enabled]);
