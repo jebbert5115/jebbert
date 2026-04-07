@@ -56,12 +56,14 @@ export function useTilt(
       rafId = requestAnimationFrame(tick);
     };
 
-    // Cache the untransformed rect BEFORE any tilt is applied
+    // Cache the untransformed rect BEFORE any tilt is applied.
+    // Forcibly reset to neutral first so re-entry during a leave-transition
+    // doesn't capture a mid-flight transformed rect.
     const onEnter = () => {
       isHovered = true;
-      // Clear any leftover transition so the rect is unaffected
-      card.style.transition = '';
-      cachedRect = card.getBoundingClientRect();
+      card.style.transition = 'none';
+      card.style.transform  = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)';
+      cachedRect = card.getBoundingClientRect(); // forces layout sync on neutral state
       current.dx = 0;
       current.dy = 0;
       cancelAnimationFrame(rafId);
