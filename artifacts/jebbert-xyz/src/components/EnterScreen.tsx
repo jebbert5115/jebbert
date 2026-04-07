@@ -114,7 +114,7 @@ export default function EnterScreen({ onEnter, onExiting }: Props) {
           {showPrompt ? (
             <div className="et-line et-prompt-line">
               <span className="et-dollar">$ </span>
-              <span className="et-prompt-text">press any key or click to access</span>
+              <span className="et-prompt-text">Press or click anywhere to access</span>
               <span className="et-cursor" />
             </div>
           ) : (
