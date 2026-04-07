@@ -65,8 +65,8 @@ export function SiteLayout() {
           avatarFallback={avatarFallback}
         />
 
-        {/* Activity rows – only when active */}
-        {(hasSpotify || hasGame) && (
+        {/* Activity rows – home page only, and only when active */}
+        {location === '/' && (hasSpotify || hasGame) && (
           <div className="guns-activities">
             <SpotifyCard data={data} loading={loading} />
             <GameCard    data={data} loading={loading} />
