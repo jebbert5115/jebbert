@@ -168,11 +168,11 @@ body::before {
 }
 
 .page-fade-in {
-  animation: pageFadeIn 150ms ease-out both;
+  animation: pageFadeIn 110ms ease-out both;
 }
 
 .page-fade-out {
-  animation: pageFadeOut 130ms ease-in both;
+  animation: pageFadeOut 80ms ease-in both;
   pointer-events: none;
 }
 

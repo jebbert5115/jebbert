@@ -9,7 +9,7 @@ import Home from '../pages/Home';
 import Projects from '../pages/Projects';
 import Secret from '../pages/Secret';
 
-const FADE_OUT_MS = 130;
+const FADE_OUT_MS = 80;
 
 function renderPage(loc: string) {
   if (loc.startsWith('/projects')) return <Projects />;
@@ -85,14 +85,14 @@ export function SiteLayout() {
         <nav className="card-nav">
           <Link
             href="/"
-            className={`card-nav-tab${location === '/' ? ' active' : ''}`}
+            className={`card-nav-tab${!location.startsWith('/projects') && !location.startsWith('/secret') ? ' active' : ''}`}
             onClick={handleNavClick}
           >
             Home
           </Link>
           <Link
             href="/projects"
-            className={`card-nav-tab${location === '/projects' ? ' active' : ''}`}
+            className={`card-nav-tab${location.startsWith('/projects') ? ' active' : ''}`}
             onClick={handleNavClick}
           >
             Projects
