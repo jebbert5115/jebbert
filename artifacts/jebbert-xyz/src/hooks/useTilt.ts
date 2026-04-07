@@ -14,6 +14,31 @@ const SHEEN_COLORS = [
   'rgba(255, 80,  160, 0.22)',
 ].join(', ');
 
+interface Center { cx: number; cy: number; hw: number; hh: number; }
+
+/**
+ * Walks offsetParent chain to get the card's true layout center in viewport
+ * coordinates. Uses offsetLeft/offsetTop which are NEVER affected by CSS
+ * transforms, eliminating the getBoundingClientRect feedback-loop entirely.
+ */
+function getLayoutCenter(card: HTMLElement): Center {
+  const w = card.offsetWidth;
+  const h = card.offsetHeight;
+  let x = 0, y = 0;
+  let el: HTMLElement | null = card;
+  while (el) {
+    x += el.offsetLeft - el.scrollLeft;
+    y += el.offsetTop  - el.scrollTop;
+    el = el.offsetParent as HTMLElement | null;
+  }
+  return {
+    cx: x + w / 2 - window.scrollX,
+    cy: y + h / 2 - window.scrollY,
+    hw: w / 2,
+    hh: h / 2,
+  };
+}
+
 export function useTilt(
   cardRef:  RefObject<HTMLDivElement | null>,
   sheenRef: RefObject<HTMLDivElement | null>,
@@ -23,17 +48,18 @@ export function useTilt(
     const sheen = sheenRef.current;
     if (!card || !sheen) return;
 
-    // Mutable state — never triggers re-renders
-    let rafId      = 0;
-    let isHovered  = false;
-    let cachedRect: DOMRect | null = null;
+    let rafId   = 0;
+    let hovered = false;
+    let center: Center | null = null;
 
     const target  = { dx: 0, dy: 0 };
     const current = { dx: 0, dy: 0 };
 
-    // rAF loop: lerp current → target and write to DOM
+    const clamp = (v: number) => Math.max(-1, Math.min(1, v));
+
+    // rAF loop — lerps current toward target and writes to DOM
     const tick = () => {
-      if (!isHovered) return;
+      if (!hovered) return;
 
       current.dx += (target.dx - current.dx) * LERP;
       current.dy += (target.dy - current.dy) * LERP;
@@ -43,7 +69,7 @@ export function useTilt(
       const sheenAngle = ((current.dx + current.dy + 2) / 4) * 360;
       const absDy      = Math.abs(current.dy);
 
-      card.style.transform = `perspective(800px) rotateX(${rotX}deg) rotateY(${rotY}deg) scale(1.02)`;
+      card.style.transform = `perspective(1000px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
       card.style.boxShadow = `0 ${20 + absDy * 16}px ${60 + absDy * 20}px rgba(0,0,0,0.55), 0 0 32px rgba(157,78,221,0.2)`;
 
       sheen.style.background = `conic-gradient(from ${sheenAngle}deg at 50% 50%, ${SHEEN_COLORS})`;
@@ -56,39 +82,30 @@ export function useTilt(
       rafId = requestAnimationFrame(tick);
     };
 
-    // Cache the untransformed rect BEFORE any tilt is applied.
-    // Forcibly reset to neutral first so re-entry during a leave-transition
-    // doesn't capture a mid-flight transformed rect.
     const onEnter = () => {
-      isHovered = true;
-      card.style.transition = 'none';
-      card.style.transform  = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)';
-      cachedRect = card.getBoundingClientRect(); // forces layout sync on neutral state
+      hovered = true;
+      center  = getLayoutCenter(card); // layout offsets, transform-immune
       current.dx = 0;
       current.dy = 0;
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(tick);
     };
 
-    // Update target only — rAF loop applies the actual values
     const onMove = (e: MouseEvent) => {
-      if (!cachedRect) return;
-      const cx = cachedRect.left + cachedRect.width  / 2;
-      const cy = cachedRect.top  + cachedRect.height / 2;
-      // Clamp to [-1, 1] so corners never overshoot
-      target.dx = Math.max(-1, Math.min(1, (e.clientX - cx) / (cachedRect.width  / 2)));
-      target.dy = Math.max(-1, Math.min(1, (e.clientY - cy) / (cachedRect.height / 2)));
+      if (!center) return;
+      target.dx = clamp((e.clientX - center.cx) / center.hw);
+      target.dy = clamp((e.clientY - center.cy) / center.hh);
     };
 
     const onLeave = () => {
-      isHovered = false;
+      hovered = false;
       cancelAnimationFrame(rafId);
-      target.dx  = 0;
-      target.dy  = 0;
-      cachedRect = null;
+      target.dx = 0;
+      target.dy = 0;
+      center    = null;
 
       card.style.transition = 'transform 500ms cubic-bezier(0.23,1,0.32,1), box-shadow 400ms ease';
-      card.style.transform  = 'perspective(800px) rotateX(0deg) rotateY(0deg) scale(1)';
+      card.style.transform  = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
       card.style.boxShadow  = '';
 
       sheen.style.transition = 'opacity 350ms ease-out';
@@ -98,14 +115,19 @@ export function useTilt(
       card.style.setProperty('--py', '0px');
     };
 
-    card.addEventListener('mouseenter', onEnter);
-    card.addEventListener('mousemove',  onMove);
-    card.addEventListener('mouseleave', onLeave);
+    // Re-cache layout center on resize (card may have moved)
+    const onResize = () => { if (hovered) center = getLayoutCenter(card); };
+
+    card.addEventListener('mouseenter',  onEnter);
+    card.addEventListener('mousemove',   onMove);
+    card.addEventListener('mouseleave',  onLeave);
+    window.addEventListener('resize',    onResize);
     return () => {
       cancelAnimationFrame(rafId);
-      card.removeEventListener('mouseenter', onEnter);
-      card.removeEventListener('mousemove',  onMove);
-      card.removeEventListener('mouseleave', onLeave);
+      card.removeEventListener('mouseenter',  onEnter);
+      card.removeEventListener('mousemove',   onMove);
+      card.removeEventListener('mouseleave',  onLeave);
+      window.removeEventListener('resize',    onResize);
     };
   }, [cardRef, sheenRef]);
 }
